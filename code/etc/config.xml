@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <global>
+    <resources>
+      <mongo_setup>
+        <connection>
+          <config>default</config>
+          <server>localhost</server>
+          <database>magento</database>
+          <type>mongo</type>
+          <active>0</active>
+        </connection>
+      </mongo_setup>
+      <mongo_read>
+        <connection>
+          <use>mongo_setup</use>
+        </connection>
+      </mongo_read>
+      <mongo_write>
+        <connection>
+          <use>mongo_setup</use>
+        </connection>
+      </mongo_write>
+    </resources>
+    <resource>
+      <connection>
+        <types>
+          <mongo>
+            <class>Cm_Mongo_Model_Resource_Type_Mongo</class>
+          </mongo>
+        </types>
+      </connection>
+    </resource>
+    <cache>
+      <types>
+        <mongo_schema translate="label,description" module="api">
+          <label>Mongo Schema Registry</label>
+          <description>Mongo Schema description files (mongo.xml).</description>
+          <tags>MONGO_SCHEMA</tags>
+        </mongo_schema>
+      </types>
+    </cache>
+
+    <models>
+      <t3>
+        <class>T3_Model</class>
+        <resourceModel>t3_mongo</resourceModel>
+      </t3>
+      <t3_mongo>
+        <class>T3_Model_Mongo</class>
+      </t3_mongo>
+    </models>
+    <mongo>
+      <default>
+        <hotel></hotel>
+      </default>
+    </mongo>
+  </global>
+</config>

@@ -1,0 +1,3 @@
+code                                   app/code/community/Cm/Mongo
+Cm_Mongo.xml                           app/etc/modules/Cm_Mongo.xml
+

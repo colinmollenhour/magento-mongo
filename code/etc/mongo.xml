@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema>
+  <t3_mongo>
+    <user>
+      <collection>users</collection>
+      <aliases>
+        <address>_a</address>
+      </aliases>
+      <fields>
+        <id>           <type>int</type></id>
+        <address>      <model>t3/address</model><type>reference</type><address>
+        <email>        <type>string</type></email>
+        <password>     <type>mongo/type_encrypted</type></password>
+        <phone>        <type>set</type></phone>
+        <sms_status>   <type>enum</type>
+                         <options>
+                           <inactive/>
+                           <pending/>
+                           <active/>
+                           <suspended/>
+                         </options>
+                       </sms_status>
+        <active>       <type>bool</type></active>
+        <roles>        <type>set</type></roles>
+        <firstname>    <type>string</type></firstname>
+        <lastname>     <type>string</type></lastname>
+        <title>        <type>string</type></title>
+      </fields>
+    </user>
+    <group>
+      <database>default</database><!-- optional -->
+      <collection>groups</collection>
+      <identifier>id</identifier><!-- optional -->
+      <fields>
+        <id>           <type>int</type></id>
+        <event>        <model>t3/event</model><type>reference</type></event>
+        <hotel>        <model>t3/hotel</model><type>reference</type></hotel>
+        <managers>     <model>t3/user</model><type>referenceSet</type></managers>
+        <members>      <model>t3/user</model><type>referenceSet</type></members>
+        <name>         <type>string</type></name>
+        <credit_card>  <model>t3/creditcard</model><type>embedded</type></credit_card>
+        <rates>        <model>t3/group_rate</model><type>embeddedSet</type></rates>
+      </fields>
+    </group>
+  </t3_mongo>
+</schema>

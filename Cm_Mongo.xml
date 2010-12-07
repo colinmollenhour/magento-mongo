@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!--
+@TODO License
+-->
+<config>
+    <modules>
+        <Cm_Mongo>
+            <active>true</active>
+            <codePool>community</codePool>
+        </Cm_Mongo>
+    </modules>
+</config>
