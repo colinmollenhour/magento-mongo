@@ -8,7 +8,7 @@
       </aliases>
       <fields>
         <id>           <type>int</type></id>
-        <address>      <model>t3/address</model><type>reference</type><address>
+        <address>      <model>t3/address</model><type>reference</type></address>
         <email>        <type>string</type></email>
         <password>     <type>mongo/type_encrypted</type></password>
         <phone>        <type>set</type></phone>

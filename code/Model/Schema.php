@@ -58,6 +58,18 @@ class Cm_Mongo_Model_Schema extends Varien_Simplexml_Config
   }
 
   /**
+   * Get the field mappings for a resource entity.
+   * 
+   * @param string $resource
+   * @param string $entity
+   * @return string
+   */
+  public function getFieldMappings($resource, $entity = NULL)
+  {
+    return (string) $this->getEntitySchema($resource, $entity)->fields;
+  }
+
+  /**
    * Get the schema config node for a resource.
    * 
    * @param string $resource
@@ -78,19 +90,4 @@ class Cm_Mongo_Model_Schema extends Varien_Simplexml_Config
     return Mage::app()->getCache();
   }
 
-  protected function _loadCache($id)
-  {
-    return Mage::app()->loadCache($id);
-  }
-
-  protected function _saveCache($data, $id, $tags=array(), $lifetime=false)
-  {
-    return Mage::app()->saveCache($data, $id, $tags, $lifetime);
-  }
-
-  protected function _removeCache($id)
-  {
-    return Mage::app()->removeCache($id);
-  }
-  
 }

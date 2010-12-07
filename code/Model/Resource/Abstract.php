@@ -5,7 +5,10 @@ abstract class Cm_Mongo_Model_Resource_Document extends Mage_Core_Model_Resource
   /** @var string  The resource group in the schema */
   protected $_resourceModel;
 
-  /** @var string  The collection name in the schema */
+  /** @var string  The entity name in the schema */
+  protected $_entityName;
+
+  /** @var string  The collection name in the database */
   protected $_collectionName;
 
   /** @var Cm_Mongo_Model_Schema */
@@ -20,8 +23,9 @@ abstract class Cm_Mongo_Model_Resource_Document extends Mage_Core_Model_Resource
   {
     $resource = explode('/', $resource, 2);
     $this->_resourceModel = $resource[0];
-    $this->_collectionName = $resource[1];
+    $this->_entityName = $resource[1];
     $this->_schema = Mage::getSingleton('mongo/schema');
+    $this->_collectionName = $this->getSchema()->getCollectionName($this->_resourceModel, $this->_entityName);
   }
 
   /**
@@ -55,6 +59,17 @@ abstract class Cm_Mongo_Model_Resource_Document extends Mage_Core_Model_Resource
   }
 
   /**
+   * Return the value as an id. Can be used to force id to be a specific type.
+   * 
+   * @param mixed $value
+   * @return mixed
+   */
+  public function getIdValue($value)
+  {
+    return $value;
+  }
+  
+  /**
    * Get cached reference to mongo schema model
    *
    * @return Cm_Mongo_Model_Schema
@@ -75,13 +90,27 @@ abstract class Cm_Mongo_Model_Resource_Document extends Mage_Core_Model_Resource
    * @param string $entityName
    * @return string
    */
-  public function getCollectionName($entityName)
+  public function getCollectionName($entityName = NULL)
   {
+    if($entityName === NULL) {
+      return $this->_collectionName;
+    }
+    
     if (strpos($entityName, '/') == FALSE) {
      $entityName = $this->_resourceModel.'/'.$entityName;
     }
 
     return $this->_schema->getCollectionName($entityName);
+  }
+  
+  /**
+   * Get the field mappings from the schema for this resource
+   * 
+   * @return Varien_Simplexml_Element
+   */
+  public function getFieldMappings()
+  {
+    return $this->_schema->getFieldMappings($this->_resourceModel, $this->_entityName);
   }
 
   /**
@@ -101,8 +130,10 @@ abstract class Cm_Mongo_Model_Resource_Document extends Mage_Core_Model_Resource
     if ( ! is_null($value)) {
       $data = $this->_getReadAdapter()->selectCollection($this->_collectionName)->findOne(array($field => $value));
       if ($data) {
-        $object->setData($data)->setOrigData()->unsetData();
         $this->hydrate($object, $data);
+        $object->setOrigData()->isNewObject(FALSE);
+      } else {
+        $object->isNewObject(TRUE);
       }
     }
 
@@ -125,40 +156,65 @@ abstract class Cm_Mongo_Model_Resource_Document extends Mage_Core_Model_Resource
 
     $this->_beforeSave($object);
 
-    $data = $object->getPendingOperations();
-
-    // upsert handles preset ids for new data and updates on old data
-    if ($object->getId()) {
-      $this->_getWriteAdapter()->selectCollection($this->_collectionName)->update(
-        array($this->getIdFieldName() => $object->getId()),
-        $data,
-        array('upsert' => TRUE, 'multiple' => FALSE, 'safe' => TRUE)
-      );
+    if( ! $object->isNewObject() && ! $object->getId()) {
+      throw new Mage_Core_Exception('Cannot save existing object without id.');
     }
-
-    // plain insert when no id is present
-    else {
-      $insertData = $data['$set'];
-      //@TODO expand keys on .
-      unset($data['$set']);
-
+    
+    // TRUE, do insert
+    if($object->isNewObject()) {
       // Insert regular data
-      $this->_getWriteAdapter()->selectCollection($this->_collectionName)->insert($insertData, array('safe' => TRUE));
-      $object->setData(array('_id' => $insertData['_id']), TRUE);
+      $data = $this->dehydrate($object);
+      $this->_getWriteAdapter()->selectCollection($this->_collectionName)->insert($data, array('safe' => TRUE));
+      $object->setData('_id', $data['_id']);
       
       // Update additional data
-      if($data) {
+      $ops = $object->getPendingOperations();
+      if($ops) {
         $this->_getWriteAdapter()->selectCollection($this->_collectionName)->update(
           array($this->getIdFieldName() => $object->getId()),
-          $data,
+          $ops,
           array('upsert' => FALSE, 'multiple' => FALSE, 'safe' => TRUE)
         );
       }
-
     }
-    $object->setOrigData();
-    $object->flagDirty(NULL,FALSE);
-    $object->resetPendingOperations();
+    // FALSE, do update
+    else if($object->isNewObject() === FALSE) {
+      // Insert regular data
+      $data = $this->dehydrate($object, TRUE);
+      $ops = $object->getPendingOperations();
+      if(isset($ops['$set'])) {
+        $ops['$set'] = array_merge($ops['$set'], $data);
+      }
+      else {
+        $ops['$set'] = $data;
+      }
+      if($ops) {
+        $this->_getWriteAdapter()->selectCollection($this->_collectionName)->update(
+          array($this->getIdFieldName() => $object->getId()),
+          $ops,
+          array('upsert' => FALSE, 'multiple' => FALSE, 'safe' => TRUE)
+        );
+      }
+    }
+    // Object status is not known, do upsert
+    else {
+      $data = $this->dehydrate($object);
+      $ops = $object->getPendingOperations();
+      if(isset($ops['$set'])) {
+        $ops['$set'] = array_merge($ops['$set'], $data);
+      }
+      else {
+        $ops['$set'] = $data;
+      }
+      $this->_getWriteAdapter()->selectCollection($this->_collectionName)->update(
+        array($this->getIdFieldName() => $object->getId()),
+        $ops,
+        array('upsert' => TRUE, 'multiple' => FALSE, 'safe' => TRUE)
+      );
+    }
+    
+    // Reset object state for successful save
+    $object->setOrigData()->resetPendingOperations()->isNewObject(FALSE);
 
     $this->_afterSave($object);
 
@@ -182,19 +238,59 @@ abstract class Cm_Mongo_Model_Resource_Document extends Mage_Core_Model_Resource
     return $this;
   }
 
-  public function hydrate(Mage_Core_Model_Abstract $object, $data)
+  /**
+   * Load mongo data into a model using the schema mappings
+   * 
+   * @param Varien_Object $object
+   * @param array $data 
+   */
+  public function hydrate(Varien_Object $object, $data)
   {
-    foreach($this->_getFieldMappings() as $field => $mapping)
+    $idFieldName = $this->getIdFieldName();
+    foreach($this->getFieldMappings() as $field => $mapping)
     {
-      $key = ($field == 'id' ? '_id' : isset($mapping->name) ? $mapping->name : $field);
-      $rawValue = isset($data[$key]) ? $data[$key] : NULL;
-      if($rawValue === NULL)
-      {
+      $key = ($field == $idFieldName ? '_id' : (isset($mapping->alias) ? $mapping->alias : $field));
+      if(array_key_exists($key, $data)) {
+        $rawValue = $data[$key];
+      }
+      else {
         continue;
       }
 
-      $object->setData($field, $this->convertMongoToPHP($mapping, $rawValue));
+      if($rawValue !== NULL || $mapping->notnull) {
+        $object->setData($field, $this->convertMongoToPHP($mapping, $rawValue));
+      }
+      else {
+        $object->setData($field, NULL);
+      }
     }
+    $object->unflagDirty();
+  }
+  
+  /**
+   * Extract data from model into Mongo-compatible array 
+   * 
+   * @param Varien_Object $object
+   * @param boolean $forUpdate
+   * @return array
+   */
+  public function dehydrate(Varien_Object $object, $forUpdate = FALSE)
+  {
+    $rawData = array();
+    foreach($this->getFieldMappings() as $field => $mapping)
+    {
+      if( ! $object->hasData($field)) {
+        continue;
+      }
+      if($forUpdate && ! $object->hasDataChangedFor($field)) {
+        continue;
+      }
+      $value = $this->convertPHPToMongo($mapping, $object->getData($field), $forUpdate);
+      
+      $key = ($field == 'id' ? '_id' : (isset($mapping->alias) ? $mapping->alias : $field));
+      $rawData[$key] = $value;
+    }
+    return $rawData;
   }
 
   public function convertMongoToPHP($mapping, $value)
@@ -202,7 +298,7 @@ abstract class Cm_Mongo_Model_Resource_Document extends Mage_Core_Model_Resource
     switch($mapping->type)
     {
       case 'id':
-        return $value;
+        return $this->getIdValue($value);
       case 'int':
         return (int) $value;
       case 'string':
@@ -217,24 +313,83 @@ abstract class Cm_Mongo_Model_Resource_Document extends Mage_Core_Model_Resource
         return (object) $value;
       // @TODO - bin data types
       case 'enum':
-        return (in_array($value,$mapping->options) ? $value : NULL);
+        return isset($mapping->options->$value) ? $value : NULL;
       case 'embedded':
-        return Mage::getModel($mapping->model)->setData($value);
+        $model = Mage::getModel($mapping->model);
+        return $model->getResource()->hydrate($model, $value);
       case 'embeddedSet':
         $set = new Varien_Data_Collection();
-        $set->setItemObjectClass($mapping->model);
+        //$set->setItemObjectClass($mapping->model);
         foreach($value as $itemData)
         {
-          $set->addItem(Mage::getModel($mapping->model)->setData($itemData));
+          $model = Mage::getModel($mapping->model);
+          $model->getResource()->hydrate($model, $itemData);
+          $set->addItem($model);
         }
         return $set;
       case 'reference':
-        return Mage::getModel($mapping->model)->load($value);
+        return $value; //Mage::getModel($mapping->model)->load($value);
       case 'referenceSet':
-        return Mage::getModel($mapping->model)->getCollection()->loadAll($value);
+        return $value; //Mage::getModel($mapping->model)->getCollection()->loadAll($value);
     }
 
     return Mage::getSingleton($mapping->type)->toPHP($mapping, $value);
   }
 
+  public function convertPHPToMongo($mapping, $value, $forUpdate = FALSE)
+  {
+    switch($mapping->type)
+    {
+      case 'id':
+        return $this->getIdValue($value);
+      case 'int':
+        return (int) $value;
+      case 'string':
+        return (string) $value;
+      case 'float':
+        return (float) $value;
+      case 'bool':
+        return (bool) $value;
+      case 'collection':
+        return array_values((array) $value);
+      case 'hash':
+        return (object) $value;
+      // @TODO - bin data types
+      case 'enum':
+        return isset($mapping->options->$value) ? $value : NULL;
+      case 'embedded':
+        return is_object($value) ? $value->getResource()->dehydrate($value, $forUpdate) : NULL;
+      case 'embeddedSet':
+        $data = array();
+        if($value instanceof Varien_Data_Collection) {
+          $items = $value->getItems();
+        }
+        else {
+          $items = (array) $value;
+        }
+        foreach($items as $item) {
+          if($item instanceof Cm_Mongo_Model_Abstract) {
+            $data[] = $item->getResource()->dehydrate($item);
+          }
+          else if($item instanceof Varien_Object) {
+            $data[] = $item->getData();
+          }
+          else {
+            $data[] = (array) $item;
+          }
+        }
+        return $data;
+      case 'reference':
+        return is_object($value) ? $value->getId() : $value;
+      case 'referenceSet':
+        $ids = array();
+        foreach($value as $item) {
+          $ids[] = is_object($item) ? $item->getId() : $item;
+        }
+        return $ids;
+    }
+
+    return Mage::getSingleton($mapping->type)->toMongo($mapping, $value);
+  }
+  
 }
