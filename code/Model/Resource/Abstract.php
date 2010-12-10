@@ -1,6 +1,6 @@
 <?php
 
-abstract class Cm_Mongo_Model_Resource_Document extends Mage_Core_Model_Resource_Abstract {
+abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource_Abstract {
 
   /** @var string  The resource group in the schema */
   protected $_resourceModel;
@@ -131,7 +131,7 @@ abstract class Cm_Mongo_Model_Resource_Document extends Mage_Core_Model_Resource
       $data = $this->_getReadAdapter()->selectCollection($this->_collectionName)->findOne(array($field => $value));
       if ($data) {
         $this->hydrate($object, $data);
-        $object->setOrigData()->isNewObject(FALSE);
+        $object->setOrigData();
       } else {
         $object->isNewObject(TRUE);
       }
@@ -258,13 +258,14 @@ abstract class Cm_Mongo_Model_Resource_Document extends Mage_Core_Model_Resource
       }
 
       if($rawValue !== NULL || $mapping->notnull) {
-        $object->setData($field, $this->convertMongoToPHP($mapping, $rawValue));
+        $value = $this->convertMongoToPHP($mapping, $rawValue);
+        $object->setDataUsingMethod($field, $value);
       }
       else {
         $object->setData($field, NULL);
       }
     }
-    $object->unflagDirty();
+    $object->unflagDirty()->isNewObject(FALSE);
   }
   
   /**
@@ -277,12 +278,13 @@ abstract class Cm_Mongo_Model_Resource_Document extends Mage_Core_Model_Resource
   public function dehydrate(Varien_Object $object, $forUpdate = FALSE)
   {
     $rawData = array();
+    $changedOnly = $forUpdate && $object->isNewObject();
     foreach($this->getFieldMappings() as $field => $mapping)
     {
       if( ! $object->hasData($field)) {
         continue;
       }
-      if($forUpdate && ! $object->hasDataChangedFor($field)) {
+      if($changedOnly && ! $object->hasDataChangedFor($field)) {
         continue;
       }
       $value = $this->convertPHPToMongo($mapping, $object->getData($field), $forUpdate);
@@ -316,7 +318,8 @@ abstract class Cm_Mongo_Model_Resource_Document extends Mage_Core_Model_Resource
         return isset($mapping->options->$value) ? $value : NULL;
       case 'embedded':
         $model = Mage::getModel($mapping->model);
-        return $model->getResource()->hydrate($model, $value);
+        $model->getResource()->hydrate($model, $value);
+        return $model;
       case 'embeddedSet':
         $set = new Varien_Data_Collection();
         //$set->setItemObjectClass($mapping->model);
@@ -358,7 +361,11 @@ abstract class Cm_Mongo_Model_Resource_Document extends Mage_Core_Model_Resource
       case 'enum':
         return isset($mapping->options->$value) ? $value : NULL;
       case 'embedded':
-        return is_object($value) ? $value->getResource()->dehydrate($value, $forUpdate) : NULL;
+        if( ! is_object($value)) {
+          return NULL;
+        }
+        $data = $value->getResource()->dehydrate($value, $forUpdate);
+        return $data;
       case 'embeddedSet':
         $data = array();
         if($value instanceof Varien_Data_Collection) {

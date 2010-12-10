@@ -7,26 +7,16 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
 
   protected $_references = array();
   
+  protected $_parent = NULL;
+  
+  protected $_children = array();
+  
   public function isNewObject($flag = -1)
   {
     if($flag !== -1) {
       $this->_isNewObject = (bool) $flag;
     }
     return $this->_isNewObject;
-  }
-
-  public function setData($key, $value)
-  {
-    // Load all data
-    if(is_array($key)) {
-      $this->_data = $key;
-    }
-
-    // Set one value
-    else {
-      $this->_data[$key] = $value;
-    }
-    return $this;
   }
 
   public function getData($key='', $index=null)
@@ -43,11 +33,62 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     return parent::getData($key, $index);
   }
 
+  public function setData($key, $value)
+  {
+    // Load all data
+    if(is_array($key)) {
+      $this->_data = $key;
+    }
+
+    // Set one value
+    else {
+      $this->_data[$key] = $value;
+    }
+    return $this;
+  }
+
+  protected function _getFieldModel($field)
+  {
+    $model = $this->getResource()->getFieldMappings()->{$field}->model;
+    $object = Mage::getModel($model);
+    return $object;
+  }
+  
+  public function _getEmbeddedObject($field)
+  {
+    if( ! $this->hasData($field)) {
+      $object = $this->_getFieldModel($field);
+      $this->_setEmbeddedObject($field, $object);
+    }
+    else if( ! $this->getData($field) instanceof Cm_Mongo_Model_Abstract) {
+      throw new Exception('Expected data to be an embedded object.');
+    }
+    return $this->getData($field);
+  }
+  
+  public function _setEmbeddedObject($field, Cm_Mongo_Model_Abstract $object)
+  {
+    $object->setEmbeddedIn($this);
+    $this->setData($field, $object);
+    $this->_children[] = $object;
+    return $this;
+  }
+  
+  public function setEmbeddedIn($parent)
+  {
+    $this->_parent = $parent;
+    return $this;
+  }
+  
+  public function getEmbeddedIn()
+  {
+    return $this->_parent;
+  }
+  
   public function getReferencedObject($field)
   {
     if( ! isset($this->_references[$field])) {
-      $model = $this->getResource()->getFieldMappings()->{$field}->model;
-      $object = Mage::getModel($model)->load($this->getData($field));
+      $object = $this->_getFieldModel($field)->load($this->getData($field));
       $this->_references[$field] = $object;
     }
     return $this->_references[$field];
@@ -108,12 +149,27 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
       return TRUE;
     }
     
-    foreach($this->getData() as $key => $value) {
-      if($value instanceof Cm_Mongo_Model_Embedded && $value->hasDataChanges()) {
+    foreach($this->_children as $value) {
+      if($value->hasDataChanges()) {
         return TRUE;
       }
     }
     return FALSE;
+  }
+  
+  public function reset()
+  {
+    $this->setData(array());
+    $this->setOrigData();
+    $this->unflagDirty();
+    $this->resetPendingOperations();
+    $this->_hasDataChanges = FALSE;
+    $this->_isNewObject = TRUE;
+    $this->_references = array();
+    $this->_parent = NULL;
+    foreach($this->_children as $object) {
+      $object->reset();
+    }
   }
   
 }
