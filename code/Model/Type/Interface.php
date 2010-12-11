@@ -3,8 +3,8 @@
 interface Cm_Mongo_Model_Type_Interface
 {
   
-  public function toPHP($value);
+  public function toPHP($mapping, $value);
   
-  public function toMongo($value);
+  public function toMongo($mapping, $value, $forUpdate = FALSE);
   
 }

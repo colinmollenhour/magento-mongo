@@ -43,13 +43,8 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     if (is_null($resourceModel)) {
       $resourceModel = $model;
     }
-    $this->setResourceModel($resourceModel);
+    $this->_resourceModel = $resourceModel;
     return $this;
-  }
-
-  public function setResourceModel($model)
-  {
-    $this->_resourceModel = $model;
   }
 
   /**
@@ -267,6 +262,8 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   /**
    * Load data
    *
+   * @param  boolean  $printQuery
+   * @param  boolean  $logQuery
    * @return  Cm_Mongo_Model_Resource_Collection_Abstract
    */
   public function load($printQuery = false, $logQuery = false)
@@ -276,12 +273,6 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     }
 
     $this->_beforeLoad();
-
-    $this->_renderFilters()
-         ->_renderOrders()
-         ->_renderLimit();
-
-    $this->printLogQuery($printQuery, $logQuery);
 
     $documents = $this->getData();
     $this->resetData();
@@ -306,14 +297,17 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   /**
    * Get all data array for collection
    *
+   * @param  boolean  $printQuery
+   * @param  boolean  $logQuery
    * @return array
    */
-  public function getData()
+  public function getData($printQuery = false, $logQuery = false)
   {
     if ($this->_data === null) {
       $this->_renderFilters()
            ->_renderOrders()
            ->_renderLimit();
+      $this->printLogQuery($printQuery, $logQuery);
       $this->_data = $this->_query->as_array(TRUE);
       $this->_afterLoadData();
     }
@@ -321,7 +315,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
-   * Proces loaded collection data
+   * Process loaded collection data
    *
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
@@ -355,14 +349,14 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     return $this;
   }
 
+  /**
+   * After load action
+   *
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   */
   protected function _afterLoad()
   {
     return $this;
-  }
-
-  public function loadData($printQuery = false, $logQuery = false)
-  {
-    return $this->load($printQuery, $logQuery);
   }
 
   /**
@@ -498,7 +492,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   /**
    * Save all the entities in the collection
    *
-   * @return Mage_Core_Model_Mysql4_Collection_Abstract
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
   public function save()
   {

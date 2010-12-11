@@ -257,6 +257,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   public function hydrate(Varien_Object $object, $data)
   {
     $idFieldName = $this->getIdFieldName();
+    $converter = $this->getMongoToPhpConverter();
     foreach($this->getFieldMappings() as $field => $mapping)
     {
       $key = ($field == 'id' ? '_id' : $field);
@@ -268,7 +269,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       }
 
       if($rawValue !== NULL || $mapping->notnull) {
-        $value = $this->convertMongoToPHP($mapping, $rawValue);
+        $value = $converter->{$mapping->type}($mapping, $rawValue);
         $object->setDataUsingMethod($field, $value);
       }
       else {
@@ -289,6 +290,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   {
     $rawData = array();
     $changedOnly = $forUpdate && $object->isNewObject();
+    $converter = $this->getPhpToMongoConverter();
     foreach($this->getFieldMappings() as $field => $mapping)
     {
       if( ! $object->hasData($field)) {
@@ -297,7 +299,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       if($changedOnly && ! $object->hasDataChangedFor($field)) {
         continue;
       }
-      $value = $this->convertPHPToMongo($mapping, $object->getData($field), $forUpdate);
+      $value = $converter->{$mapping->type}($mapping, $object->getData($field), $forUpdate);
       
       $key = ($field == 'id' ? '_id' : $field);
       $rawData[$key] = $value;
@@ -305,109 +307,24 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     return $rawData;
   }
 
-  public function convertMongoToPHP($mapping, $value)
+  /**
+   * Get mongo to php data type converter instance
+   *
+   * @return Cm_Mongo_Model_Type_Tophp
+   */
+  public function getMongoToPhpConverter()
   {
-    switch($mapping->type)
-    {
-      case 'id':
-        return $this->getIdValue($value);
-      case 'int':
-        return (int) $value;
-      case 'string':
-        return (string) $value;
-      case 'float':
-        return (float) $value;
-      case 'bool':
-        return (bool) $value;
-      case 'collection':
-        return array_values((array) $value);
-      case 'hash':
-        return (object) $value;
-      // @TODO - bin data types
-      case 'enum':
-        return isset($mapping->options->$value) ? $value : NULL;
-      case 'embedded':
-        $model = Mage::getModel($mapping->model);
-        $model->getResource()->hydrate($model, $value);
-        return $model;
-      case 'embeddedSet':
-        $set = new Varien_Data_Collection();
-        //$set->setItemObjectClass($mapping->model);
-        foreach($value as $itemData)
-        {
-          $model = Mage::getModel($mapping->model);
-          $model->getResource()->hydrate($model, $itemData);
-          $model->setOrigData();
-          $set->addItem($model);
-        }
-        return $set;
-      case 'reference':
-        return $value; //Mage::getModel($mapping->model)->load($value);
-      case 'referenceSet':
-        return $value; //Mage::getModel($mapping->model)->getCollection()->loadAll($value);
-    }
-
-    return Mage::getSingleton($mapping->type)->toPHP($mapping, $value);
-  }
-
-  public function convertPHPToMongo($mapping, $value, $forUpdate = FALSE)
-  {
-    switch($mapping->type)
-    {
-      case 'id':
-        return $this->getIdValue($value);
-      case 'int':
-        return (int) $value;
-      case 'string':
-        return (string) $value;
-      case 'float':
-        return (float) $value;
-      case 'bool':
-        return (bool) $value;
-      case 'collection':
-        return array_values((array) $value);
-      case 'hash':
-        return (object) $value;
-      // @TODO - bin data types
-      case 'enum':
-        return isset($mapping->options->$value) ? $value : NULL;
-      case 'embedded':
-        if( ! is_object($value)) {
-          return NULL;
-        }
-        $data = $value->getResource()->dehydrate($value, $forUpdate);
-        return $data;
-      case 'embeddedSet':
-        $data = array();
-        if($value instanceof Varien_Data_Collection) {
-          $items = $value->getItems();
-        }
-        else {
-          $items = (array) $value;
-        }
-        foreach($items as $item) {
-          if($item instanceof Cm_Mongo_Model_Abstract) {
-            $data[] = $item->getResource()->dehydrate($item);
-          }
-          else if($item instanceof Varien_Object) {
-            $data[] = $item->getData();
-          }
-          else {
-            $data[] = (array) $item;
-          }
-        }
-        return $data;
-      case 'reference':
-        return is_object($value) ? $value->getId() : $value;
-      case 'referenceSet':
-        $ids = array();
-        foreach($value as $item) {
-          $ids[] = is_object($item) ? $item->getId() : $item;
-        }
-        return $ids;
-    }
-
-    return Mage::getSingleton($mapping->type)->toMongo($mapping, $value);
+    return Mage::getSingleton('mongo/type_tophp');
   }
   
+  /**
+   * Get php to mongo data type converter instance
+   *
+   * @return Cm_Mongo_Model_Type_Tomongo
+   */
+  public function getPhpToMongoConverter()
+  {
+    return Mage::getSingleton('mongo/type_tomongo');
+  }
+
 }
