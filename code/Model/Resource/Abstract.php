@@ -31,7 +31,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Get the db read connection. Currently does not support alternate resources
    *
-   * @return Mongo_Collection
+   * @return Mongo_Database
    */
   protected function _getReadAdapter()
   {
@@ -41,11 +41,21 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Get the db write connection. Currently does not support alternate resources
    *
-   * @return Mongo_Collection
+   * @return Mongo_Database
    */
   protected function _getWriteAdapter()
   {
     return Mage::getSingleton('core/resource')->getConnection('mongo_write');
+  }
+
+  /**
+   * Temporary resolving collection compatibility
+   *
+   * @return Mongo_Database
+   */
+  public function getReadConnection()
+  {
+    return $this->_getReadAdapter();
   }
 
   /**
@@ -249,7 +259,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     $idFieldName = $this->getIdFieldName();
     foreach($this->getFieldMappings() as $field => $mapping)
     {
-      $key = ($field == $idFieldName ? '_id' : (isset($mapping->alias) ? $mapping->alias : $field));
+      $key = ($field == 'id' ? '_id' : $field);
       if(array_key_exists($key, $data)) {
         $rawValue = $data[$key];
       }
@@ -289,7 +299,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       }
       $value = $this->convertPHPToMongo($mapping, $object->getData($field), $forUpdate);
       
-      $key = ($field == 'id' ? '_id' : (isset($mapping->alias) ? $mapping->alias : $field));
+      $key = ($field == 'id' ? '_id' : $field);
       $rawData[$key] = $value;
     }
     return $rawData;
@@ -327,6 +337,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         {
           $model = Mage::getModel($mapping->model);
           $model->getResource()->hydrate($model, $itemData);
+          $model->setOrigData();
           $set->addItem($model);
         }
         return $set;

@@ -11,10 +11,11 @@ class Cm_Mongo_Model_Resource_Type_Mongo extends Mage_Core_Model_Resource_Type_A
    */
   public function getConnection($config)
   {
-    $configArr = (array)$config;
-    $configArr['profiler'] = !empty($configArr['profiler']) && $configArr['profiler']!=='false';
-
-    $conn = Mongo_Database::instance($configArr['config'], $configArr);
+    require_once 'mongodb-php-odm'.DS.'classes'.DS.'mongo'.DS.'database.php';
+    require_once 'mongodb-php-odm'.DS.'classes'.DS.'mongo'.DS.'collection.php';
+    
+    $conn = Mongo_Database::instance($config['config'], $config);
+    // @TODO - set profiler
 
     return $conn;
   }
