@@ -396,23 +396,20 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
-   * Build SQL statement for condition
+   * Build query condition
    *
-   * If $condition integer or string - exact value will be filtered
+   * If $condition is not array - exact value will be filtered
    *
-   * If $condition is array is - one of the following structures is expected:
+   * If $condition is assoc array - one of the following structures is expected:
    * - array("from"=>$fromValue, "to"=>$toValue)
    * - array("like"=>$likeValue)
-   * - array("neq"=>$notEqualValue)
-   * - array("in"=>array($inValues))
-   * - array("nin"=>array($notInValues))
+   * - array("notnull"=>TRUE)
    *
-   * If non matched - sequential array is expected and OR conditions
-   * will be built using above mentioned structure
+   * If $condition is numerically indexed array then treated as $or conditions
    *
    * @param string $fieldName
    * @param integer|string|array $condition
-   * @return string
+   * @return array
    */
   protected function _getCondition($fieldName, $condition)
   {
@@ -485,7 +482,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       elseif (isset($condition[0])) {
         $query = array();
         foreach ($condition as $orCondition) {
-          $query[] = array($fieldName => $orCondition);
+          $query[] = $this->_getCondition($fieldName, $orCondition);
         }
         $query = array('$or' => $query);
       }
@@ -496,6 +493,19 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       $query = array($fieldName => $condition);
     }
     return $query;
+  }
+
+  /**
+   * Save all the entities in the collection
+   *
+   * @return Mage_Core_Model_Mysql4_Collection_Abstract
+   */
+  public function save()
+  {
+    foreach ($this->getItems() as $item) {
+      $item->save();
+    }
+    return $this;
   }
 
 }
