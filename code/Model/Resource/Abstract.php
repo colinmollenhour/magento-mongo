@@ -138,6 +138,19 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   }
 
   /**
+   * Get an instance of an embedded model for the given field.
+   * 
+   * @param type $field
+   * @return Cm_Mongo_Model_Abstract
+   */
+  public function getFieldModel($field)
+  {
+    $model = (string) $this->getFieldMappings()->{$field}->model;
+    $object = Mage::getModel($model);
+    return $object;
+  }
+  
+  /**
    * Load an object
    *
    * @param   Mage_Core_Model_Abstract $object
@@ -152,7 +165,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     }
 
     if ( ! is_null($value)) {
-      $data = $this->_getReadAdapter()->selectCollection($this->_collectionName)->findOne(array($field => $value));
+      $data = $this->_getDocument($object, $field, $value);
       if ($data) {
         $this->hydrate($object, $data);
         $object->setOrigData();
@@ -164,6 +177,19 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     $this->_afterLoad($object);
 
     return $this;
+  }
+  
+  /**
+   * Get the document for a load.
+   * 
+   * @param Mage_Core_Model_Abstract $object
+   * @param moxed $value
+   * @param string $field
+   * @return type 
+   */
+  protected function _getDocument(Mage_Core_Model_Abstract $object, $value, $field)
+  {
+    return $this->_getReadAdapter()->selectCollection($this->_collectionName)->findOne(array($field => $value));
   }
 
   /**
@@ -310,7 +336,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     {
       $key = ($field == 'id' ? '_id' : $field);
       
-      if( ! $object->hasData($key)) {
+      if( ! $object->hasData($key) && ! $mapping->notnull) {
         continue;
       }
       if($changedOnly && ! $object->hasDataChangedFor($key)) {

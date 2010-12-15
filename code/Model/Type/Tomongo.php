@@ -30,7 +30,7 @@ class Cm_Mongo_Model_Type_Tomongo
 
   public function hash($mapping, $value)
   {
-    return (object) $value;
+    return empty($value) ? new ArrayObject : $value;
   }
 
   public function enum($mapping, $value)

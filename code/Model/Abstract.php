@@ -7,9 +7,11 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
 
   protected $_references = array();
   
-  protected $_parent = NULL;
-  
-  protected $_children = array();
+  /* These property names are reserved but not declared
+  protected $_children;
+  protected $_root;
+  protected $_path;
+   */
   
   public function isNewObject($flag = -1)
   {
@@ -21,16 +23,15 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
 
   public function getData($key='', $index=null)
   {
-    // Get all data
     if(''===$key) {
-      if($this->isDirty() && isset($this->_data['_id'])) {
-        $this->load($this->getId());
-      }
       return $this->_data;
     }
-
-    // Get one value
-    return parent::getData($key == 'id' ? '_id' : $key, $index);
+    if('id'===$key) {
+      $key = '_id';
+    } else if(strpos($key,'.')) {
+      return parent::getData(str_replace('.','/',$key));
+    }
+    return isset($this->_data[$key]) ? $this->_data[$key] : NULL;
   }
 
   public function setData($key, $value=null)
@@ -53,18 +54,11 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     }
     return $this;
   }
-
-  protected function _getFieldModel($field)
-  {
-    $model = $this->getResource()->getFieldMappings()->{$field}->model;
-    $object = Mage::getModel($model);
-    return $object;
-  }
   
-  public function _getEmbeddedObject($field)
+  protected function _getEmbeddedObject($field)
   {
     if( ! $this->hasData($field)) {
-      $object = $this->_getFieldModel($field);
+      $object = $this->getResource()->getFieldModel($field);
       $this->_setEmbeddedObject($field, $object);
     }
     else if( ! $this->getData($field) instanceof Cm_Mongo_Model_Abstract) {
@@ -73,29 +67,38 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     return $this->getData($field);
   }
   
-  public function _setEmbeddedObject($field, Cm_Mongo_Model_Abstract $object)
+  protected function _setEmbeddedObject($field, Cm_Mongo_Model_Abstract $object)
   {
-    $object->setEmbeddedIn($this);
+    $object->_setEmbeddedIn($this, $this->getFieldPath($field));
     $this->setData($field, $object);
+    if( ! isset($this->_children)) {
+      $this->_children = array();
+    }
     $this->_children[] = $object;
     return $this;
   }
   
-  public function setEmbeddedIn($parent)
+  public function _setEmbeddedIn($parent, $path)
   {
-    $this->_parent = $parent;
+    $this->_root = $parent->getRootObject();
+    $this->_path = $path.'.';
     return $this;
   }
   
-  public function getEmbeddedIn()
+  public function getRootObject()
   {
-    return $this->_parent;
+    return isset($this->_root) ? $this->_root : $this;
+  }
+  
+  public function getFieldPath($field = '')
+  {
+    return (isset($this->_path) ? $this->_path : '').$field;
   }
   
   public function getReferencedObject($field)
   {
     if( ! isset($this->_references[$field])) {
-      $object = $this->_getFieldModel($field)->load($this->getData($field));
+      $object = $this->getResource()->getFieldModel($field)->load($this->getData($field));
       $this->_references[$field] = $object;
     }
     return $this->_references[$field];
@@ -105,6 +108,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
   {
     $this->setData($field, $object->getId());
     $this->_references[$field] = $object;
+    return $this;
   }
   
   public function getReferencedCollection($field)
@@ -117,26 +121,41 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     return $this->_references[$field];
   }
   
-  public function op($op, $key, $value)
+  public function op($op, $key, $value = NULL)
   {
+    // All operations are routed to the root object
+    if(isset($this->_root)) {
+      $this->getRootObject()->op($op, $this->_path.$key, $value);
+      return $this;
+    }
+    
+    // Allow multiple operations if $key is an array
+    if(is_array($key)) {
+      foreach($key as $k => $v) {
+        $this->op($op, $k, $v);
+      }
+      return $this;
+    }
+    
+    // Save operation for later
+    if( ! isset($this->_operations)) {
+      $this->_operations = array();
+    }
     if( ! isset($this->_operations[$op])) {
       $this->_operations[$op] = array();
     }
     $this->_operations[$op][$key] = $value;
-    if(strpos($key,'.') === FALSE) {
-      $this->flagDirty($key);
-    }
     return $this;
   }
   
   public function getPendingOperations()
   {
-    return $this->_operations;
+    return isset($this->_operations) ? $this->_operations : array();
   }
 
   public function resetPendingOperations()
   {
-    $this->_operations = array();
+    unset($this->_operations);
     return $this;
   }
 
@@ -156,9 +175,11 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
       return TRUE;
     }
     
-    foreach($this->_children as $value) {
-      if($value->hasDataChanges()) {
-        return TRUE;
+    if(isset($this->_children)) {
+      foreach($this->_children as $value) {
+        if($value->hasDataChanges()) {
+          return TRUE;
+        }
       }
     }
     return FALSE;
@@ -173,9 +194,12 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     $this->_hasDataChanges = FALSE;
     $this->_isNewObject = TRUE;
     $this->_references = array();
-    $this->_parent = NULL;
-    foreach($this->_children as $object) {
-      $object->reset();
+    unset($this->_root);
+    if(isset($this->_children)) {
+      foreach($this->_children as $object) {
+        $object->reset();
+      }
+      unset($this->_children);
     }
   }
   

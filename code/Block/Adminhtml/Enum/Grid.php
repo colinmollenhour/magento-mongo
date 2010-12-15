@@ -14,7 +14,6 @@ class Cm_Mongo_Block_Adminhtml_Enum_Grid extends Mage_Adminhtml_Block_Widget_Gri
   {
     $this->setCollection(Mage::getResourceModel('mongo/enum_collection'));
     parent::_prepareCollection();
-    //var_dump($this->getCollection()->getQuery()->cursor()->info()); die;
   }
   
   public function _prepareColumns()

@@ -30,7 +30,7 @@ class Cm_Mongo_Model_Type_Tophp
 
   public function hash($mapping, $value)
   {
-    return (object) $value;
+    return (array) $value;
   }
 
   public function enum($mapping, $value)

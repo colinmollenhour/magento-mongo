@@ -5,8 +5,9 @@
       <collection>enums</collection>
       <fields>
         <id/>
-        <label/>
-        <values>       <type>hash</type></values>
+        <name/>
+        <defaults>       <type>hash</type><notnull>1</notnull></defaults>
+        <stores>         <type>hash</type></stores>
       </fields>
     </enum>
   </mongo>
