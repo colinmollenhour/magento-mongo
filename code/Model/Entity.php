@@ -347,7 +347,6 @@ abstract class Cm_Mongo_Model_Entity
     {
         $attribute = $this->getAttribute($attributeCode);
         $backend = $attribute->getBackend();
-        $table = $backend->getTable();
         $entity = $attribute->getEntity();
         $entityIdField = $entity->getEntityIdField();
 

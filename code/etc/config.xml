@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config>
+  
+  <modules>
+    <Cm_Mongo>
+      <version>0.1.0</version>
+    </Cm_Mongo>
+  </modules>
+  
   <global>
+    
     <resources>
       <mongo_setup>
         <connection>
@@ -8,7 +16,7 @@
           <server>localhost</server>
           <database>magento</database>
           <type>mongo</type>
-          <active>0</active>
+          <active>1</active>
         </connection>
       </mongo_setup>
       <mongo_read>
@@ -22,6 +30,7 @@
         </connection>
       </mongo_write>
     </resources>
+    
     <resource>
       <connection>
         <types>
@@ -31,6 +40,7 @@
         </types>
       </connection>
     </resource>
+    
     <cache>
       <types>
         <mongo_schema translate="label,description" module="api">
@@ -41,19 +51,40 @@
       </types>
     </cache>
 
+    <blocks>
+      <mongo>
+        <class>Cm_Mongo_Block</class>
+      </mongo>
+    </blocks>
+    
+    <helpers>
+      <mongo>
+        <class>Cm_Mongo_Helper</class>
+      </mongo>
+    </helpers>
+    
     <models>
-      <t3>
-        <class>T3_Model</class>
-        <resourceModel>t3_mongo</resourceModel>
-      </t3>
-      <t3_mongo>
-        <class>T3_Model_Mongo</class>
-      </t3_mongo>
+      <mongo>
+        <class>Cm_Mongo_Model</class>
+        <resourceModel>mongo_mongo</resourceModel>
+      </mongo>
+      <mongo_mongo>
+        <class>Cm_Mongo_Model_Mongo</class>
+      </mongo_mongo>
     </models>
-    <mongo>
-      <default>
-        <hotel></hotel>
-      </default>
-    </mongo>
+    
   </global>
+  
+  <admin>
+    <routers>
+      <adminhtml>
+        <args>
+          <modules>
+            <Cm_Mongo>Cm_Mongo_Adminhtml</Cm_Mongo>
+          </modules>
+        </args>
+      </adminhtml>
+    </routers>
+  </admin>
+  
 </config>

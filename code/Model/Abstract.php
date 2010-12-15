@@ -30,18 +30,25 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     }
 
     // Get one value
-    return parent::getData($key, $index);
+    return parent::getData($key == 'id' ? '_id' : $key, $index);
   }
 
-  public function setData($key, $value)
+  public function setData($key, $value=null)
   {
+    $this->_hasDataChanges = true;
+    
     // Load all data
     if(is_array($key)) {
+      if(isset($key['id'])) {
+        $key['_id'] = $key['id'];
+        unset($key['id']);
+      }
       $this->_data = $key;
     }
 
     // Set one value
     else {
+      if($key == 'id') $key = '_id';
       $this->_data[$key] = $value;
     }
     return $this;

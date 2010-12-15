@@ -19,6 +19,10 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    * @var Mongo_Collection */
   protected $_query;
   
+  /** Storage for the raw data
+   * @var array */
+  protected $_data;
+  
   public function __construct($resource = NULL)
   {
     parent::__construct();
@@ -72,6 +76,16 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
+   * The id field name (_id)
+   * 
+   * @return string
+   */
+  public function getIdFieldName()
+  {
+    return $this->getResource()->getIdFieldName();
+  }
+  
+  /**
    * Get the database connection
    *
    * @return Mongo_Database
@@ -89,6 +103,16 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   public function getQuery()
   {
     return $this->_query;
+  }
+  
+  /**
+   * Strictly for backwards compatibility with MySQL
+   * 
+   * @return Mongo_Collection
+   */
+  public function getSelect()
+  {
+    return $this->getQuery();
   }
 
   /**
@@ -112,7 +136,8 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   public function getSize()
   {
     if (is_null($this->_totalRecords)) {
-      $this->_totalRecords = $this->getCountQuery()->count();
+      $this->_renderFilters();
+      $this->_totalRecords = $this->getQuery()->count(FALSE); // false ignores limit and skip
     }
     return intval($this->_totalRecords);
   }
@@ -120,7 +145,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   /**
    * Get SQL for get record count
    *
-   * @return Varien_Db_Select
+   * @return Mongo_Collection
    */
   public function getCountQuery()
   {
@@ -253,7 +278,9 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   protected function _renderLimit()
   {
     if($this->_pageSize){
-      $this->_query->skip($this->getCurPage() * $this->_pageSize);
+      if($this->getCurPage() > 1) {
+        $this->_query->skip(($this->getCurPage()-1) * $this->_pageSize);
+      }
       $this->_query->limit($this->_pageSize);
     }
     return $this;
@@ -272,16 +299,16 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       return $this;
     }
 
-    $this->_beforeLoad();
-
     $documents = $this->getData();
+    $this->printLogQuery($printQuery, $logQuery);
     $this->resetData();
 
     if (is_array($documents)) {
+      $idFieldName = $this->getIdFieldName();
       foreach ($documents as $data) {
         $item = $this->getNewEmptyItem();
-        if ($this->getIdFieldName()) {
-          $item->setIdFieldName($this->getIdFieldName());
+        if ($idFieldName) {
+          $item->setIdFieldName($idFieldName);
         }
         $this->getResource()->hydrate($item, $data);
         $item->setOrigData();
@@ -297,17 +324,15 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   /**
    * Get all data array for collection
    *
-   * @param  boolean  $printQuery
-   * @param  boolean  $logQuery
    * @return array
    */
-  public function getData($printQuery = false, $logQuery = false)
+  public function getData()
   {
     if ($this->_data === null) {
+      $this->_beforeLoad();
       $this->_renderFilters()
            ->_renderOrders()
            ->_renderLimit();
-      $this->printLogQuery($printQuery, $logQuery);
       $this->_data = $this->_query->as_array(TRUE);
       $this->_afterLoadData();
     }

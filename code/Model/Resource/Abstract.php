@@ -11,9 +11,6 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /** @var string  The collection name in the database */
   protected $_collectionName;
 
-  /** @var Cm_Mongo_Model_Schema */
-  protected $_schema;
-  
   /**
    * Standard resource model initialization
    *
@@ -24,7 +21,6 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     $resource = explode('/', $resource, 2);
     $this->_resourceModel = $resource[0];
     $this->_entityName = $resource[1];
-    $this->_schema = Mage::getSingleton('mongo/schema');
     $this->_collectionName = $this->getSchema()->getCollectionName($this->_resourceModel, $this->_entityName);
   }
 
@@ -59,6 +55,24 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   }
 
   /**
+   * No function
+   */
+  public function beginTransaction()
+  {}
+  
+  /**
+   * No function
+   */
+  public function commit()
+  {}
+  
+  /**
+   * No function
+   */
+  public function rollback()
+  {}
+  
+  /**
    * In Mongo, there is always an _id column
    *
    * @return string
@@ -82,11 +96,11 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Get cached reference to mongo schema model
    *
-   * @return Cm_Mongo_Model_Schema
+   * @return Cm_Mongo_ModelgetSchema()
    */
   public function getSchema()
   {
-    return $this->_schema;
+    return Mage::getSingleton('mongo/schema');
   }
 
   /**
@@ -110,7 +124,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
      $entityName = $this->_resourceModel.'/'.$entityName;
     }
 
-    return $this->_schema->getCollectionName($entityName);
+    return $this->getSchema()->getCollectionName($entityName);
   }
   
   /**
@@ -120,7 +134,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    */
   public function getFieldMappings()
   {
-    return $this->_schema->getFieldMappings($this->_resourceModel, $this->_entityName);
+    return $this->getSchema()->getFieldMappings($this->_resourceModel, $this->_entityName);
   }
 
   /**
@@ -269,7 +283,8 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       }
 
       if($rawValue !== NULL || $mapping->notnull) {
-        $value = $converter->{$mapping->type}($mapping, $rawValue);
+        $type = isset($mapping->type) ? (string)$mapping->type : 'string';
+        $value = $converter->$type($mapping, $rawValue);
         $object->setDataUsingMethod($field, $value);
       }
       else {
@@ -293,15 +308,17 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     $converter = $this->getPhpToMongoConverter();
     foreach($this->getFieldMappings() as $field => $mapping)
     {
-      if( ! $object->hasData($field)) {
-        continue;
-      }
-      if($changedOnly && ! $object->hasDataChangedFor($field)) {
-        continue;
-      }
-      $value = $converter->{$mapping->type}($mapping, $object->getData($field), $forUpdate);
-      
       $key = ($field == 'id' ? '_id' : $field);
+      
+      if( ! $object->hasData($key)) {
+        continue;
+      }
+      if($changedOnly && ! $object->hasDataChangedFor($key)) {
+        continue;
+      }
+      $type = isset($mapping->type) ? (string)$mapping->type : 'string';
+      $value = $converter->$type($mapping, $object->getData($key), $forUpdate);
+      
       $rawData[$key] = $value;
     }
     return $rawData;
@@ -326,5 +343,11 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   {
     return Mage::getSingleton('mongo/type_tomongo');
   }
+  
+  protected function _afterLoad(Mage_Core_Model_Abstract $object){}
+  protected function _beforeSave(Mage_Core_Model_Abstract $object){}
+  protected function _afterSave(Mage_Core_Model_Abstract $object){}
+  protected function _beforeDelete(Mage_Core_Model_Abstract $object){}
+  protected function _afterDelete(Mage_Core_Model_Abstract $object){}
 
 }

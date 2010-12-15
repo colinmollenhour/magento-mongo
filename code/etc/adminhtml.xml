@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <menu>
+    <system>
+      <children>
+        <enums>
+          <title>Enumerations</title>
+          <action>adminhtml/enum</action>
+          <sort_order>105</sort_order>
+        </enums>
+      </children>
+    </system>
+  </menu>
+  <acl>
+    <resources>
+      <admin>
+        <children>
+          <system>
+            <children>
+              <enums translate="title">
+                <title>Manage Enumerations</title>
+                <sort_order>105</sort_order>
+              </enums>
+            </children>
+          </system>
+        </children>
+      </admin>
+    </resources>
+  </acl>
+</config>

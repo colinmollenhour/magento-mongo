@@ -1,7 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema>
+  <mongo>
+    <enum>
+      <collection>enums</collection>
+      <fields>
+        <id/>
+        <label/>
+        <values>       <type>hash</type></values>
+      </fields>
+    </enum>
+  </mongo>
   <!-- Resource Name -->
-  <foo_mongo>
+  <foo>
     <!-- Entity Name -->
     <bar>
       <database>default</database><!-- optional -->
@@ -24,5 +34,5 @@
         <roles>        <type>set</type><subtype>string</subtype></roles>
       </fields>
     </bar>
-  </foo_mongo>
+  </foo>
 </schema>

@@ -66,7 +66,7 @@ class Cm_Mongo_Model_Schema extends Varien_Simplexml_Config
    */
   public function getFieldMappings($resource, $entity = NULL)
   {
-    return (string) $this->getEntitySchema($resource, $entity)->fields;
+    return $this->getEntitySchema($resource, $entity)->fields->children();
   }
 
   /**

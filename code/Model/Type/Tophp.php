@@ -1,6 +1,6 @@
 <?php
 
-class Cm_Mongo_Model_Type_Tomongo
+class Cm_Mongo_Model_Type_Tophp
 {
 
   public function int($mapping, $value)
