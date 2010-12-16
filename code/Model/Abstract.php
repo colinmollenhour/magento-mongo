@@ -54,6 +54,14 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     }
     return $this;
   }
+
+  public function unsetData($key=null)
+  {
+    if( ! is_null($key) && $this->isNewObject() === FALSE && ! isset($this->getResource()->getFieldMappings()->$key->required)) {
+      $this->op('$unset', $key, 1);
+    }
+    return parent::unsetData($key);
+  }
   
   protected function _getEmbeddedObject($field)
   {

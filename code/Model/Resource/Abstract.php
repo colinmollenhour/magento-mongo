@@ -96,11 +96,28 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Get cached reference to mongo schema model
    *
-   * @return Cm_Mongo_ModelgetSchema()
+   * @return Cm_Mongo_Model_Schema
    */
   public function getSchema()
   {
     return Mage::getSingleton('mongo/schema');
+  }
+
+  /**
+   * Get the schema config element for the given (or current) entity.
+   *
+   * @param string $entityName
+   * @return Mage_Core_Model_Config_Element
+   */
+  public function getEntitySchema($entityName = NULL)
+  {
+    if($entityName === NULL) {
+      return $this->getSchema()->getEntitySchema($this->_resourceModel, $this->_entityName);
+    }
+    if(strpos($entityName, '/') === FALSE) {
+      return $this->getSchema()->getEntitySchema($this->_resourceModel, $entityName);
+    }
+    return $this->getSchema()->getEntitySchema($entityName);
   }
 
   /**
@@ -119,11 +136,9 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     if($entityName === NULL) {
       return $this->_collectionName;
     }
-    
-    if (strpos($entityName, '/') == FALSE) {
-     $entityName = $this->_resourceModel.'/'.$entityName;
+    if (strpos($entityName, '/') === FALSE) {
+      return $this->getSchema()->getCollectionName($this->_resourceModel, $entityName);
     }
-
     return $this->getSchema()->getCollectionName($entityName);
   }
   
@@ -148,6 +163,33 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     $model = (string) $this->getFieldMappings()->{$field}->model;
     $object = Mage::getModel($model);
     return $object;
+  }
+
+  /**
+   * Get the next auto-increment value for this resource entity
+   *
+   * @return int
+   * @throws MongoException
+   */
+  public function getAutoIncrement()
+  {
+    return $this->_getWriteAdapter()->get_auto_increment($this->_resourceModel.'/'.$this->_entityName);
+  }
+
+  /**
+   * Set created_at and/or update_at timestamps on the given object
+   *
+   * @param boolean $created
+   * @param boolean $updated
+   */
+  public function setTimestamps(Mage_Core_Model_Abstract $object, $created = TRUE, $updated = TRUE)
+  {
+    if($created) {
+      $object->setData('created_at', new MongoDate());
+    }
+    if($updated) {
+      $object->setData('updated_at', new MongoDate());
+    }
   }
   
   /**
@@ -193,7 +235,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   }
 
   /**
-   * Save object object data
+   * Save object
    *
    * @param   Mage_Core_Model_Abstract $object
    * @return  Mage_Core_Model_Mysql4_Abstract
@@ -211,9 +253,19 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     }
     
     // TRUE, do insert
-    if($object->isNewObject()) {
-      // Insert regular data
+    if($object->isNewObject())
+    {
+      // Set created and updated timestamps
+      $this->setTimestamps(
+        $this->getEntitySchema()->created_timestamp,
+        $this->getEntitySchema()->updated_timestamp
+      );
+
+      // Collect data for mongo and insert
       $data = $this->dehydrate($object);
+      if(empty($data['_id']) && $this->getEntitySchema()->autoincrement) {
+        $data['_id'] = $this->getAutoIncrement();
+      }
       $this->_getWriteAdapter()->selectCollection($this->_collectionName)->insert($data, array('safe' => TRUE));
       $object->setData('_id', $data['_id']);
       
@@ -227,9 +279,17 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         );
       }
     }
+
     // FALSE, do update
-    else if($object->isNewObject() === FALSE) {
-      // Insert regular data
+    else if($object->isNewObject() === FALSE)
+    {
+      // Set updated timestamp only
+      $this->setTimestamps(
+        FALSE,
+        $this->getEntitySchema()->updated_timestamp
+      );
+
+      // Collect data for mongo and update using atomic operators
       $data = $this->dehydrate($object, TRUE);
       $ops = $object->getPendingOperations();
       if(isset($ops['$set'])) {
@@ -246,8 +306,17 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         );
       }
     }
+
     // Object status is not known, do upsert
-    else {
+    else
+    {
+      // Created timestamps not available on upsert
+      $this->setTimestamps(
+        FALSE,
+        $this->getEntitySchema()->updated_timestamp
+      );
+
+      // Collect data for mongo and operations and upsert
       $data = $this->dehydrate($object);
       $ops = $object->getPendingOperations();
       if(isset($ops['$set'])) {
@@ -301,16 +370,14 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     foreach($this->getFieldMappings() as $field => $mapping)
     {
       $key = ($field == 'id' ? '_id' : $field);
-      if(array_key_exists($key, $data)) {
-        $rawValue = $data[$key];
-      }
-      else {
+
+      if( ! array_key_exists($key, $data)) {
         continue;
       }
 
-      if($rawValue !== NULL || $mapping->notnull) {
-        $type = isset($mapping->type) ? (string)$mapping->type : 'string';
-        $value = $converter->$type($mapping, $rawValue);
+      if( $data[$key] !== NULL ) {
+        $type = isset($mapping->type) ? (string) $mapping->type : 'string';
+        $value = $converter->$type($mapping, $data[$key]);
         $object->setDataUsingMethod($field, $value);
       }
       else {
@@ -336,13 +403,20 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     {
       $key = ($field == 'id' ? '_id' : $field);
       
-      if( ! $object->hasData($key) && ! $mapping->notnull) {
+      if( ! $object->hasData($key) && ! isset($mapping->required)) {
         continue;
       }
+
       if($changedOnly && ! $object->hasDataChangedFor($key)) {
         continue;
       }
-      $type = isset($mapping->type) ? (string)$mapping->type : 'string';
+      
+      $rawValue = $object->getData($key);
+      if($rawValue === NULL && isset($mapping->required) && ! isset($mapping->required->null)) {
+        $rawValue = $mapping->required;
+      }
+
+      $type = isset($mapping->type) ? (string) $mapping->type : 'string';
       $value = $converter->$type($mapping, $object->getData($key), $forUpdate);
       
       $rawData[$key] = $value;

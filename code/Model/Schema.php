@@ -47,7 +47,7 @@ class Cm_Mongo_Model_Schema extends Varien_Simplexml_Config
    * 
    * @param string $resource
    * @param string $entity
-   * @return Varien_Simplexml_Element
+   * @return Mage_Core_Model_Config_Element
    */
   public function getEntitySchema($resource, $entity = NULL)
   {
