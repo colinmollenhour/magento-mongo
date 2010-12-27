@@ -256,7 +256,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     if($object->isNewObject())
     {
       // Set created and updated timestamps
-      $this->setTimestamps(
+      $this->setTimestamps( $object,
         $this->getEntitySchema()->created_timestamp,
         $this->getEntitySchema()->updated_timestamp
       );
@@ -284,7 +284,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     else if($object->isNewObject() === FALSE)
     {
       // Set updated timestamp only
-      $this->setTimestamps(
+      $this->setTimestamps( $object,
         FALSE,
         $this->getEntitySchema()->updated_timestamp
       );
@@ -311,7 +311,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     else
     {
       // Created timestamps not available on upsert
-      $this->setTimestamps(
+      $this->setTimestamps( $object,
         FALSE,
         $this->getEntitySchema()->updated_timestamp
       );
