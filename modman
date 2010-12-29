@@ -2,4 +2,4 @@ code                                   app/code/community/Cm/Mongo
 lib/mongodb-php-odm                    lib/mongodb-php-odm
 Cm_Mongo.xml                           app/etc/modules/Cm_Mongo.xml
 layout/mongo.xml                       app/design/adminhtml/default/default/layout/mongo.xml
-layout/mongo.xml                       app/design/frontend/default/default/layout/mongo.xml
+layout/mongo.xml                       app/design/frontend/base/default/layout/mongo.xml

@@ -16,8 +16,6 @@ class Cm_Mongo_Profiler
     	'start'=>false,
     	'count'=>0,
     	'sum'=>0,
-    	'realmem'=>0,
-    	'emalloc'=>0,
     );
   }
 
