@@ -160,9 +160,24 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    */
   public function getFieldModel($field)
   {
-    $model = (string) $this->getFieldMappings()->{$field}->model;
+    $model = (string) $this->getFieldMapping($field)->model;
     $object = Mage::getModel($model);
     return $object;
+  }
+
+  /**
+   * Get the field mapping data for the given field name.
+   *
+   * @param string $field
+   * @return string
+   */
+  public function getFieldMapping($field)
+  {
+    $mapping = $this->getFieldMappings()->{$field};
+    if( ! $mapping) {
+      throw new Exception("$this->_resourceModel/$this->_entityName does not have a field named $field.");
+    }
+    return $mapping;
   }
 
   /**
@@ -207,7 +222,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     }
 
     if ( ! is_null($value)) {
-      $data = $this->_getDocument($object, $field, $value);
+      $data = $this->_getDocument($field, $value);
       if ($data) {
         $this->hydrate($object, $data);
         $object->setOrigData();
@@ -224,13 +239,14 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Get the document for a load.
    * 
-   * @param Mage_Core_Model_Abstract $object
-   * @param moxed $value
    * @param string $field
+   * @param mixed $value
+   * @param boolean $cast  Cast the value to the mongo type?
    * @return type 
    */
-  protected function _getDocument(Mage_Core_Model_Abstract $object, $value, $field)
+  protected function _getDocument($field, $value, $cast = TRUE)
   {
+    $value = $this->castToMongo($field, $value);
     return $this->_getReadAdapter()->selectCollection($this->_collectionName)->findOne(array($field => $value));
   }
 
@@ -369,22 +385,20 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     $converter = $this->getMongoToPhpConverter();
     foreach($this->getFieldMappings() as $field => $mapping)
     {
-      $key = ($field == 'id' ? '_id' : $field);
-
-      if( ! array_key_exists($key, $data)) {
+      if( ! array_key_exists($field, $data)) {
         continue;
       }
 
-      if( $data[$key] !== NULL ) {
+      if( $data[$field] !== NULL ) {
         $type = isset($mapping->type) ? (string) $mapping->type : 'string';
-        $value = $converter->$type($mapping, $data[$key]);
+        $value = $converter->$type($mapping, $data[$field]);
         $object->setDataUsingMethod($field, $value);
       }
       else {
         $object->setData($field, NULL);
       }
     }
-    $object->unflagDirty()->isNewObject(FALSE);
+    $object->isNewObject(FALSE);
   }
   
   /**
@@ -401,25 +415,23 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     $converter = $this->getPhpToMongoConverter();
     foreach($this->getFieldMappings() as $field => $mapping)
     {
-      $key = ($field == 'id' ? '_id' : $field);
-      
-      if( ! $object->hasData($key) && ! isset($mapping->required)) {
+      if( ! $object->hasData($field) && ! isset($mapping->required)) {
         continue;
       }
 
-      if($changedOnly && ! $object->hasDataChangedFor($key)) {
+      if($changedOnly && ! $object->hasDataChangedFor($field)) {
         continue;
       }
       
-      $rawValue = $object->getData($key);
+      $rawValue = $object->getData($field);
       if($rawValue === NULL && isset($mapping->required) && ! isset($mapping->required->null)) {
         $rawValue = $mapping->required;
       }
 
       $type = isset($mapping->type) ? (string) $mapping->type : 'string';
-      $value = $converter->$type($mapping, $object->getData($key), $forUpdate);
+      $value = $converter->$type($mapping, $object->getData($field), $forUpdate);
       
-      $rawData[$key] = $value;
+      $rawData[$field] = $value;
     }
     return $rawData;
   }
@@ -443,7 +455,20 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   {
     return Mage::getSingleton('mongo/type_tomongo');
   }
-  
+
+  /**
+   * Cast a value to the proper type based on the schema's field mapping for this resource.
+   *
+   * @param string $field
+   * @param mixed $value
+   * @return mixed
+   */
+  public function castToMongo($field, $value)
+  {
+    $mapping = $this->getFieldMapping($field);
+    return $this->getPhpToMongoConverter()->{"$mapping->type"}($mapping, $value);
+  }
+
   protected function _afterLoad(Mage_Core_Model_Abstract $object){}
   protected function _beforeSave(Mage_Core_Model_Abstract $object){}
   protected function _afterSave(Mage_Core_Model_Abstract $object){}

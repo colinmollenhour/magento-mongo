@@ -2,9 +2,13 @@
 
 abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
 
-  /** @var boolean - Assume an object is new unless loaded or saved or manually set otherwise */
+  /** @var string   Id field name is always _id */
+  protected $_idFieldName = '_id';
+
+  /** @var boolean   Assume an object is new unless loaded or saved or manually set otherwise */
   protected $_isNewObject = TRUE;
 
+  /** @var array   Storage for referenced objects */
   protected $_references = array();
   
   /* These property names are reserved but not declared
@@ -26,33 +30,10 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     if(''===$key) {
       return $this->_data;
     }
-    if('id'===$key) {
-      $key = '_id';
-    } else if(strpos($key,'.')) {
+    if(strpos($key,'.')) {
       return parent::getData(str_replace('.','/',$key));
     }
     return isset($this->_data[$key]) ? $this->_data[$key] : NULL;
-  }
-
-  public function setData($key, $value=null)
-  {
-    $this->_hasDataChanges = true;
-    
-    // Load all data
-    if(is_array($key)) {
-      if(isset($key['id'])) {
-        $key['_id'] = $key['id'];
-        unset($key['id']);
-      }
-      $this->_data = $key;
-    }
-
-    // Set one value
-    else {
-      if($key == 'id') $key = '_id';
-      $this->_data[$key] = $value;
-    }
-    return $this;
   }
 
   public function unsetData($key=null)
@@ -166,16 +147,6 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     unset($this->_operations);
     return $this;
   }
-
-  public function unflagDirty($key = '')
-  {
-    if(''===$key) {
-      $this->_dirty = array();
-    } else {
-      unset($this->_dirty[$key]);
-    }
-    return $this;
-  }
  
   public function hasDataChanges()
   {
@@ -197,7 +168,6 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
   {
     $this->setData(array());
     $this->setOrigData();
-    $this->unflagDirty();
     $this->resetPendingOperations();
     $this->_hasDataChanges = FALSE;
     $this->_isNewObject = TRUE;
