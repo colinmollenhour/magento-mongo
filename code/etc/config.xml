@@ -86,5 +86,25 @@
       </adminhtml>
     </routers>
   </admin>
-  
+
+  <adminhtml>
+    <layout>
+      <updates>
+        <mongo module="Cm_Mongo">
+          <file>mongo.xml</file>
+        </mongo>
+      </updates>
+    </layout>
+  </adminhtml>
+
+  <frontend>
+    <layout>
+      <updates>
+        <mongo module="Cm_Mongo">
+          <file>mongo.xml</file>
+        </mongo>
+      </updates>
+    </layout>
+  </frontend>
+
 </config>

@@ -14,11 +14,26 @@ class Cm_Mongo_Model_Resource_Type_Mongo extends Mage_Core_Model_Resource_Type_A
     require_once 'mongodb-php-odm'.DS.'classes'.DS.'json.php';
     require_once 'mongodb-php-odm'.DS.'classes'.DS.'mongo'.DS.'database.php';
     require_once 'mongodb-php-odm'.DS.'classes'.DS.'mongo'.DS.'collection.php';
-    
-    $conn = Mongo_Database::instance($config['config'], $config->asCanonicalArray());
-    // @TODO - set profiler
+
+    $conn = Mongo_Database::instance((string)$config->config, $config->asCanonicalArray());
+
+    // Set profiler
+    $conn->profiling = Mage::getStoreConfigFlag('dev/debug/mongo_profiler');
+    $conn->set_profiler(array($this, 'start_profiler'), array($this, 'stop_profiler'));
 
     return $conn;
+  }
+
+  public function start_profiler($group, $query)
+  {
+    $key = "$group::$query";
+    Cm_Mongo_Profiler::start($key);
+    return $key;
+  }
+
+  public function stop_profiler($key)
+  {
+    Cm_Mongo_Profiler::stop($key);
   }
 
 }
