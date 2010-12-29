@@ -6,7 +6,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
   protected $_idFieldName = '_id';
 
   /** @var boolean   Assume an object is new unless loaded or saved or manually set otherwise */
-  protected $_isNewObject = TRUE;
+  protected $_isObjectNew = TRUE;
 
   /** @var array   Storage for referenced objects */
   protected $_references = array();
@@ -17,12 +17,12 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
   protected $_path;
    */
   
-  public function isNewObject($flag = -1)
+  public function isObjectNew($flag = -1)
   {
     if($flag !== -1) {
-      $this->_isNewObject = (bool) $flag;
+      $this->_isObjectNew = (bool) $flag;
     }
-    return $this->_isNewObject;
+    return $this->_isObjectNew;
   }
 
   public function getData($key='', $index=null)
@@ -38,7 +38,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
 
   public function unsetData($key=null)
   {
-    if( ! is_null($key) && $this->isNewObject() === FALSE && ! isset($this->getResource()->getFieldMappings()->$key->required)) {
+    if( ! is_null($key) && $this->isObjectNew() === FALSE && ! isset($this->getResource()->getFieldMappings()->$key->required)) {
       $this->op('$unset', $key, 1);
     }
     return parent::unsetData($key);
@@ -46,7 +46,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
   
   protected function _getEmbeddedObject($field)
   {
-    if( ! $this->hasData($field)) {
+    if( ! $this->hasData($field) || $this->getData($field) === NULL) {
       $object = $this->getResource()->getFieldModel($field);
       $this->_setEmbeddedObject($field, $object);
     }
@@ -170,7 +170,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     $this->setOrigData();
     $this->resetPendingOperations();
     $this->_hasDataChanges = FALSE;
-    $this->_isNewObject = TRUE;
+    $this->_isObjectNew = TRUE;
     $this->_references = array();
     unset($this->_root);
     if(isset($this->_children)) {
@@ -179,6 +179,13 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
       }
       unset($this->_children);
     }
+  }
+  
+  protected function _beforeSave()
+  {
+    Mage::dispatchEvent('model_save_before', array('object'=>$this));
+    Mage::dispatchEvent($this->_eventPrefix.'_save_before', $this->_getEventData());
+    return $this;
   }
   
 }

@@ -227,7 +227,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         $this->hydrate($object, $data);
         $object->setOrigData();
       } else {
-        $object->isNewObject(TRUE);
+        $object->isObjectNew(TRUE);
       }
     }
 
@@ -264,12 +264,8 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
 
     $this->_beforeSave($object);
 
-    if( ! $object->isNewObject() && ! $object->getId()) {
-      throw new Mage_Core_Exception('Cannot save existing object without id.');
-    }
-    
     // TRUE, do insert
-    if($object->isNewObject())
+    if($object->isObjectNew())
     {
       // Set created and updated timestamps
       $this->setTimestamps( $object,
@@ -297,8 +293,12 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     }
 
     // FALSE, do update
-    else if($object->isNewObject() === FALSE)
+    else if($object->isObjectNew() === FALSE)
     {
+      if( ! $object->getId()) {
+        throw new Mage_Core_Exception('Cannot save existing object without id.');
+      }
+      
       // Set updated timestamp only
       $this->setTimestamps( $object,
         FALSE,
@@ -307,11 +307,12 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
 
       // Collect data for mongo and update using atomic operators
       $data = $this->dehydrate($object, TRUE);
+      $data = $this->_flattenUpdateData($data);
       $ops = $object->getPendingOperations();
       if(isset($ops['$set'])) {
-        $ops['$set'] = array_merge($ops['$set'], $data);
+        $ops['$set'] = array_merge($data, $ops['$set']);
       }
-      else {
+      else if($data) {
         $ops['$set'] = $data;
       }
       if($ops) {
@@ -349,7 +350,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     }
     
     // Reset object state for successful save
-    $object->setOrigData()->resetPendingOperations()->isNewObject(FALSE);
+    $object->setOrigData()->resetPendingOperations()->isObjectNew(FALSE);
 
     $this->_afterSave($object);
 
@@ -398,7 +399,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         $object->setData($field, NULL);
       }
     }
-    $object->isNewObject(FALSE);
+    $object->isObjectNew(FALSE);
   }
   
   /**
@@ -411,7 +412,6 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   public function dehydrate(Varien_Object $object, $forUpdate = FALSE)
   {
     $rawData = array();
-    $changedOnly = $forUpdate && $object->isNewObject();
     $converter = $this->getPhpToMongoConverter();
     foreach($this->getFieldMappings() as $field => $mapping)
     {
@@ -419,7 +419,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         continue;
       }
 
-      if($changedOnly && ! $object->hasDataChangedFor($field)) {
+      if($forUpdate && ! $object->dataHasChangedFor($field) && ! is_object($object->getData($field))) {
         continue;
       }
       
@@ -431,6 +431,9 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       $type = isset($mapping->type) ? (string) $mapping->type : 'string';
       $value = $converter->$type($mapping, $object->getData($field), $forUpdate);
       
+      if($forUpdate && is_array($value) && empty($value) && ($type == 'embedded' || $type == 'embeddedSet')) {
+        continue;
+      }
       $rawData[$field] = $value;
     }
     return $rawData;
@@ -469,6 +472,30 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     return $this->getPhpToMongoConverter()->{"$mapping->type"}($mapping, $value);
   }
 
+  /**
+   * Flatten a nested array of values to update into . delimited keys
+   * 
+   * @param array $data
+   * @param string $path   Used for recursion
+   * @return array
+   */
+  protected function _flattenUpdateData($data, $path = '')
+  {
+    $result = array();
+    foreach($data as $key => $value) {
+      if(is_array($value)) {
+        $result2 = $this->_flattenUpdateData($value, $key.'.');
+        foreach($result2 as $key2 => $value2) {
+          $result[$path.$key2] = $value2;
+        }
+      }
+      else {
+        $result[$path.$key] = $value;
+      }
+    }
+    return $result;
+  }
+  
   protected function _afterLoad(Mage_Core_Model_Abstract $object){}
   protected function _beforeSave(Mage_Core_Model_Abstract $object){}
   protected function _afterSave(Mage_Core_Model_Abstract $object){}
