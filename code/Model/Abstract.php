@@ -11,12 +11,18 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
   /** @var array   Storage for referenced objects */
   protected $_references = array();
   
-  /* These property names are reserved but not declared
   protected $_children;
   protected $_root;
   protected $_path;
-   */
   
+  /**
+   * Get or set the _isObjectNew flag. Defaults to TRUE.
+   * 
+   * Overridden to allow NULL to be set/returned for upsert on save.
+   * 
+   * @param boolean $flag
+   * @return boolean
+   */
   public function isObjectNew($flag = -1)
   {
     if($flag !== -1) {
@@ -25,6 +31,15 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     return $this->_isObjectNew;
   }
 
+  /**
+   * Get some or all data.
+   * 
+   * Overridden to allow . delimited names to retrieve nested data and disable the second parameter.
+   * 
+   * @param string $key
+   * @param int $index DO NOT USE
+   * @return mixed 
+   */
   public function getData($key='', $index=null)
   {
     if(''===$key) {
@@ -36,6 +51,14 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     return isset($this->_data[$key]) ? $this->_data[$key] : NULL;
   }
 
+  /**
+   * Unsets the data at the given key.
+   * 
+   * Overridden to add an $unset operation for when the object is saved.
+   * 
+   * @param string $key
+   * @return Cm_Mongo_Model_Abstract
+   */
   public function unsetData($key=null)
   {
     if( ! is_null($key) && $this->isObjectNew() === FALSE && ! isset($this->getResource()->getFieldMappings()->$key->required)) {
@@ -44,6 +67,24 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     return parent::unsetData($key);
   }
   
+  /**
+   * Loads data into the model using the resource hydration method.
+   * 
+   * @param array $data
+   * @return Cm_Mongo_Model_Abstract 
+   */
+  public function loadData($data)
+  {
+    $this->getResource()->hydrate($this, $data, FALSE);
+    return $this;
+  }
+  
+  /**
+   * Retrieve an embedded object using the schema info by key
+   * 
+   * @param string $field
+   * @return Cm_Mongo_Model_Abstract
+   */
   protected function _getEmbeddedObject($field)
   {
     if( ! $this->hasData($field) || $this->getData($field) === NULL) {
@@ -56,6 +97,13 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     return $this->getData($field);
   }
   
+  /**
+   * Set an embedded object by key
+   * 
+   * @param string $field
+   * @param Cm_Mongo_Model_Abstract $object
+   * @return Cm_Mongo_Model_Abstract 
+   */
   protected function _setEmbeddedObject($field, Cm_Mongo_Model_Abstract $object)
   {
     $object->_setEmbeddedIn($this, $this->getFieldPath($field));
@@ -67,6 +115,15 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     return $this;
   }
   
+  /**
+   * Set the parent object and the path relative to the parent.
+   * 
+   * Although this method is public it should not be used except by the _setEmbeddedObject method.
+   * 
+   * @param Cm_Mongo_Model_Abstract $parent
+   * @param string $path
+   * @return Cm_Mongo_Model_Abstract 
+   */
   public function _setEmbeddedIn($parent, $path)
   {
     $this->_root = $parent->getRootObject();
@@ -74,47 +131,99 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     return $this;
   }
   
+  /**
+   * Get the root object (highest parent, or self if this is the parent object)
+   * 
+   * @return Cm_Mongo_Model_Abstract
+   */
   public function getRootObject()
   {
     return isset($this->_root) ? $this->_root : $this;
   }
   
+  /**
+   * Get the full path of the given field relative to the root object.
+   * 
+   * @param string $field
+   * @return string
+   */
   public function getFieldPath($field = '')
   {
     return (isset($this->_path) ? $this->_path : '').$field;
   }
   
+  /**
+   * Get the referenced object. Attempts to load the object on first retrieval.
+   * 
+   * @param string $field
+   * @return Cm_Mongo_Model_Abstract
+   */
   public function getReferencedObject($field)
   {
     if( ! isset($this->_references[$field])) {
-      $object = $this->getResource()->getFieldModel($field)->load($this->getData($field));
+      $object = $this->getResource()->getFieldModel($field);
+      if($this->hasData($field)) {
+        $object->load($this->getData($field));
+      }
       $this->_references[$field] = $object;
     }
     return $this->_references[$field];
   }
   
-  public function setReferencedObject($field, $object)
+  /**
+   * Sets the referenced object. Stores an internal reference and sets the field to the object's ID.
+   * 
+   * @param string $field
+   * @param Cm_Mongo_Model_Abstract $object
+   * @return Cm_Mongo_Model_Abstract 
+   */
+  public function setReferencedObject($field, Cm_Mongo_Model_Abstract $object)
   {
     $this->setData($field, $object->getId());
     $this->_references[$field] = $object;
     return $this;
   }
   
+  /**
+   * Get a collection of referenced objects
+   * 
+   * @param string $field
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   */
   public function getReferencedCollection($field)
   {
     if( ! isset($this->_references[$field])) {
-      $model = $this->getResource()->getFieldMappings()->{$field}->model;
+      $model = $this->getResource()->getFieldModel($field);
       $collection = Mage::getModel($model)->getCollection()->loadAll($this->getData($field));
       $this->_references[$field] = $collection;
     }
     return $this->_references[$field];
   }
   
+  /**
+   * Queue an operation to be performed during the next save.
+   * 
+   * @see http://www.mongodb.org/display/DOCS/Updating
+   * 
+   * If $key is an array, the operation will be applied to each key => value pair.
+   * 
+   * @param string $op
+   * @param string $key
+   * @param mixed $value
+   * @return Cm_Mongo_Model_Abstract 
+   */
   public function op($op, $key, $value = NULL)
   {
     // All operations are routed to the root object
     if(isset($this->_root)) {
-      $this->getRootObject()->op($op, $this->_path.$key, $value);
+      if(is_array($key)) {
+        foreach($key as $k => $v) {
+          $this->getRootObject()->op($op, $this->_path.$k, $v);
+        }
+      }
+      else {
+        $this->getRootObject()->op($op, $this->_path.$key, $value);
+      }
       return $this;
     }
     
@@ -137,17 +246,32 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     return $this;
   }
   
+  /**
+   * Retrieve all pending operations. Only needs to be used by resource model.
+   * 
+   * @return array
+   */
   public function getPendingOperations()
   {
     return isset($this->_operations) ? $this->_operations : array();
   }
 
+  /**
+   * Reset the pending operations. Only needs to be used by resource model.
+   * 
+   * @return Cm_Mongo_Model_Abstract 
+   */
   public function resetPendingOperations()
   {
     unset($this->_operations);
     return $this;
   }
  
+  /**
+   * Overriden to check all embedded objects for data changes as well.
+   * 
+   * @return boolean
+   */
   public function hasDataChanges()
   {
     if($this->_hasDataChanges) {
@@ -164,6 +288,9 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     return FALSE;
   }
   
+  /**
+   * When memory usage is important, use this to ensure there are no memory leaks.
+   */
   public function reset()
   {
     $this->setData(array());
@@ -181,6 +308,11 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
     }
   }
   
+  /**
+   * Overridden to not set an object as new when there is no id to support upserts.
+   * 
+   * @return Cm_Mongo_Model_Abstract 
+   */
   protected function _beforeSave()
   {
     Mage::dispatchEvent('model_save_before', array('object'=>$this));

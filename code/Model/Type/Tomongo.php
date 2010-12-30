@@ -3,32 +3,32 @@
 class Cm_Mongo_Model_Type_Tomongo
 {
 
-  public function any($mapping, $value, $forUpdate = FALSE)
+  public function any($mapping, $value)
   {
     return $value;
   }
 
-  public function int($mapping, $value, $forUpdate = FALSE)
+  public function int($mapping, $value)
   {
     return (int) $value;
   }
 
-  public function string($mapping, $value, $forUpdate = FALSE)
+  public function string($mapping, $value)
   {
     return (string) $value;
   }
 
-  public function float($mapping, $value, $forUpdate = FALSE)
+  public function float($mapping, $value)
   {
     return (float) $value;
   }
 
-  public function bool($mapping, $value, $forUpdate = FALSE)
+  public function bool($mapping, $value)
   {
     return (bool) $value;
   }
 
-  public function mongodate($mapping, $value, $forUpdate = FALSE)
+  public function mongodate($mapping, $value)
   {
     if($value instanceof MongoDate) {
       return $value;
@@ -44,7 +44,7 @@ class Cm_Mongo_Model_Type_Tomongo
     return new MongoDate((int)$value);
   }
 
-  public function timestamp($mapping, $value, $forUpdate = FALSE)
+  public function timestamp($mapping, $value)
   {
     if($value instanceof MongoDate) {
       return $value->sec;
@@ -73,22 +73,29 @@ class Cm_Mongo_Model_Type_Tomongo
     return NULL;
   }
 
-  public function set($mapping, $value, $forUpdate = FALSE)
+  public function set($mapping, $value)
   {
-    return array_values((array) $value);
+    $value = array_values((array) $value);
+    if($mapping->subtype) {
+      $subtype = (string) $mapping->subtype;
+      foreach($value as &$val) {
+        $val = $this->$subtype($mapping, $val);
+      }
+    }
+    return $value;
   }
-
-  public function hash($mapping, $value, $forUpdate = FALSE)
+  
+  public function hash($mapping, $value)
   {
     return empty($value) ? new ArrayObject : (array) $value;
   }
 
-  public function enum($mapping, $value, $forUpdate = FALSE)
+  public function enum($mapping, $value)
   {
     return isset($mapping->options->$value) ? (string) $value : NULL;
   }
 
-  public function enumSet($mapping, $value, $forUpdate = FALSE)
+  public function enumSet($mapping, $value)
   {
     if($value instanceof Mage_Core_Model_Config_Element) {
       $value = array_keys($value->asCanonicalArray());
@@ -110,38 +117,6 @@ class Cm_Mongo_Model_Type_Tomongo
     return $value;
   }
 
-  public function embedded($mapping, $value, $forUpdate = FALSE)
-  {
-    if( ! is_object($value)) {
-      return NULL;
-    }
-    $data = $value->getResource()->dehydrate($value, $forUpdate);
-    return $data;
-  }
-
-  public function embeddedSet($mapping, $value, $forUpdate = FALSE)
-  {
-    $data = array();
-    if($value instanceof Varien_Data_Collection) {
-      $items = $value->getItems();
-    }
-    else {
-      $items = (array) $value;
-    }
-    foreach($items as $item) {
-      if($item instanceof Cm_Mongo_Model_Abstract) {
-        $data[] = $item->getResource()->dehydrate($item, $forUpdate);
-      }
-      else if($item instanceof Varien_Object) {
-        $data[] = $item->getData();
-      }
-      else {
-        $data[] = (array) $item;
-      }
-    }
-    return $data;
-  }
-
   public function reference($mapping, $value)
   {
     return ($value instanceof Varien_Object ? $value->getId() : $value);
@@ -158,10 +133,7 @@ class Cm_Mongo_Model_Type_Tomongo
 
   public function __call($name, $args)
   {
-    if( ! isset($args[2])) {
-      $args[2] = FALSE;
-    }
-    return Mage::getSingleton($name)->toMongo($args[0], $args[1], $args[2]);
+    return Mage::getSingleton($name)->toMongo($args[0], $args[1]);
   }
 
 }

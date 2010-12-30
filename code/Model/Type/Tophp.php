@@ -75,7 +75,14 @@ class Cm_Mongo_Model_Type_Tophp
   
   public function set($mapping, $value)
   {
-    return array_values((array) $value);
+    $value = array_values((array) $value);
+    if($mapping->subtype) {
+      $subtype = (string) $mapping->subtype;
+      foreach($value as &$val) {
+        $val = $this->$subtype($mapping, $val);
+      }
+    }
+    return $value;
   }
 
   public function hash($mapping, $value)
@@ -104,27 +111,6 @@ class Cm_Mongo_Model_Type_Tophp
       return array_diff($value, $rejects);
     }
     return $value;
-  }
-
-  public function embedded($mapping, $value)
-  {
-    $model = Mage::getModel($mapping->model);
-    $model->getResource()->hydrate($model, $value);
-    return $model;
-  }
-
-  public function embeddedSet($mapping, $value)
-  {
-    $set = new Varien_Data_Collection();
-    //$set->setItemObjectClass($mapping->model);
-    foreach($value as $itemData)
-    {
-      $model = Mage::getModel($mapping->model);
-      $model->getResource()->hydrate($model, $itemData);
-      $model->setOrigData();
-      $set->addItem($model);
-    }
-    return $set;
   }
 
   public function reference($mapping, $value)

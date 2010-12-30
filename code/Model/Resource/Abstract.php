@@ -224,8 +224,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     if ( ! is_null($value)) {
       $data = $this->_getDocument($field, $value);
       if ($data) {
-        $this->hydrate($object, $data);
-        $object->setOrigData();
+        $this->hydrate($object, $data, TRUE);
       } else {
         $object->isObjectNew(TRUE);
       }
@@ -307,7 +306,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
 
       // Collect data for mongo and update using atomic operators
       $data = $this->dehydrate($object, TRUE);
-      $data = $this->_flattenUpdateData($data);
+      $data = $this->_flattenUpdateData($object->getOrigData(), $data);
       $ops = $object->getPendingOperations();
       if(isset($ops['$set'])) {
         $ops['$set'] = array_merge($data, $ops['$set']);
@@ -380,9 +379,8 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    * @param Varien_Object $object
    * @param array $data 
    */
-  public function hydrate(Varien_Object $object, $data)
+  public function hydrate(Varien_Object $object, $data, $original = FALSE)
   {
-    $idFieldName = $this->getIdFieldName();
     $converter = $this->getMongoToPhpConverter();
     foreach($this->getFieldMappings() as $field => $mapping)
     {
@@ -390,16 +388,50 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         continue;
       }
 
-      if( $data[$field] !== NULL ) {
+      $value = $data[$field];
+      if( $value !== NULL ) {
         $type = isset($mapping->type) ? (string) $mapping->type : 'string';
-        $value = $converter->$type($mapping, $data[$field]);
-        $object->setDataUsingMethod($field, $value);
+        if($type == 'embedded') {
+          $model = $object->getDataUsingMethod($field);
+          $model->getResource()->hydrate($model, $value, $original);
+        }
+        elseif($type == 'embeddedSet') {
+          if( ! $object->getData($field)) {
+            $set = new Varien_Data_Collection;
+            foreach($value as $itemData)
+            {
+              $model = Mage::getModel((string)$mapping->model);
+              $model->getResource()->hydrate($model, $itemData, $original);
+              $set->addItem($model);
+            }
+            $object->setDataUsingMethod($field, $set);
+          }
+          else {
+            $set = $object->getData($field);
+            foreach($value as $index => $itemData)
+            {
+              $item = $set->getItemById($index);
+              if( ! $item) {
+                $item = Mage::getModel((string)$mapping->model);
+              }
+              $item->getResource()->hydrate($item, $itemData, $original);
+            }
+          }
+        }
+        else {
+          $value = $converter->$type($mapping, $value);
+          $object->setDataUsingMethod($field, $value);
+        }
       }
       else {
         $object->setData($field, NULL);
       }
     }
     $object->isObjectNew(FALSE);
+    
+    if($original) {
+      $object->setOrigData();
+    }
   }
   
   /**
@@ -419,21 +451,63 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         continue;
       }
 
-      if($forUpdate && ! $object->dataHasChangedFor($field) && ! is_object($object->getData($field))) {
+      if($forUpdate && ! $object->dataHasChangedFor($field) && ! $object->getData($field) instanceof Varien_Object) {
         continue;
       }
       
       $rawValue = $object->getData($field);
+      
       if($rawValue === NULL && isset($mapping->required) && ! isset($mapping->required->null)) {
-        $rawValue = $mapping->required;
+        $rawValue = (string) $mapping->required;
       }
 
       $type = isset($mapping->type) ? (string) $mapping->type : 'string';
-      $value = $converter->$type($mapping, $object->getData($field), $forUpdate);
       
-      if($forUpdate && is_array($value) && empty($value) && ($type == 'embedded' || $type == 'embeddedSet')) {
-        continue;
+      // Embedded object
+      if($type == 'embedded')
+      {
+        if($rawValue instanceof Cm_Mongo_Model_Abstract) {
+          $value = $rawValue->getResource()->dehydrate($rawValue, $forUpdate);
+        }
+        else {
+          $value = NULL;
+        }
+        if($forUpdate && empty($value)) {
+          continue;
+        }
       }
+      
+      // Sets of embedded objects
+      else if($type == 'embeddedSet')
+      {
+        $value = array();
+        if($rawValue instanceof Varien_Data_Collection) {
+          $items = $rawValue->getItems();
+        }
+        else {
+          $items = (array) $rawValue;
+        }
+        foreach($items as $item) {
+          if($item instanceof Cm_Mongo_Model_Abstract) {
+            $value[] = $item->getResource()->dehydrate($item, $forUpdate);
+          }
+          else if($item instanceof Varien_Object) {
+            $value[] = $item->getData();
+          }
+          else {
+            $value[] = (array) $item;
+          }
+        }
+        if($forUpdate && empty($value)) {
+          continue;
+        }
+      }
+      
+      // All other data types
+      else {
+        $value = $converter->$type($mapping, $object->getData($field));
+      }
+      
       $rawData[$field] = $value;
     }
     return $rawData;
@@ -479,17 +553,24 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    * @param string $path   Used for recursion
    * @return array
    */
-  protected function _flattenUpdateData($data, $path = '')
+  public function _flattenUpdateData($orig, $data, $path = '')
   {
     $result = array();
-    foreach($data as $key => $value) {
-      if(is_array($value)) {
-        $result2 = $this->_flattenUpdateData($value, $key.'.');
+    foreach($data as $key => $value)
+    {
+      if(is_array($value) && isset($orig[$key]))
+      {
+        $origData = $orig[$key];
+        if($origData instanceof Cm_Mongo_Model_Abstract) {
+          $origData = $origData->getOrigData();
+        }
+        $result2 = $this->_flattenUpdateData($origData, $value, $key.'.');
         foreach($result2 as $key2 => $value2) {
           $result[$path.$key2] = $value2;
         }
       }
-      else {
+      else
+      {
         $result[$path.$key] = $value;
       }
     }
