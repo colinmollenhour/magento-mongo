@@ -28,7 +28,18 @@ class Cm_Mongo_Model_Type_Tomongo
     return (bool) $value;
   }
 
-  public function mongodate($mapping, $value)
+  public function MongoId($mapping, $value)
+  {
+    if($value instanceof MongoId) {
+      return $value;
+    }
+    if(is_string($value)) {
+      return new MongoId($value);
+    }
+    return NULL;
+  }
+  
+  public function MongoDate($mapping, $value)
   {
     if($value instanceof MongoDate) {
       return $value;
@@ -87,7 +98,16 @@ class Cm_Mongo_Model_Type_Tomongo
   
   public function hash($mapping, $value)
   {
-    return empty($value) ? new ArrayObject : (array) $value;
+    if( ! count($value)) {
+      return new ArrayObject;
+    }
+    if($mapping->subtype) {
+      $subtype = (string) $mapping->subtype;
+      foreach($value as $key => $val) {
+        $value[$key] = $this->$subtype($mapping, $val);
+      }
+    }
+    return (array) $value;
   }
 
   public function enum($mapping, $value)
@@ -119,14 +139,16 @@ class Cm_Mongo_Model_Type_Tomongo
 
   public function reference($mapping, $value)
   {
-    return ($value instanceof Varien_Object ? $value->getId() : $value);
+    $value = ($value instanceof Varien_Object ? $value->getId() : $value);
+    return Mage::getResourceSingleton((string) $mapping->model)->castToMongo('_id', $value);
   }
 
   public function referenceSet($mapping, $value)
   {
     $ids = array();
     foreach($value as $item) {
-      $ids[] = is_object($item) ? $item->getId() : $item;
+      $id = $item instanceof Varien_Object ? $item->getId() : $item;
+      $ids[] = Mage::getResourceSingleton((string) $mapping->model)->castToMongo('_id', $id);
     }
     return $ids;
   }

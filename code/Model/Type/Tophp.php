@@ -28,7 +28,18 @@ class Cm_Mongo_Model_Type_Tophp
     return (bool) $value;
   }
 
-  public function mongodate($mapping, $value)
+  public function MongoId($mapping, $value)
+  {
+    if($value instanceof MongoId) {
+      return $value;
+    }
+    if(is_string($value)) {
+      return new MongoId($value);
+    }
+    return NULL;
+  }
+  
+  public function MongoDate($mapping, $value)
   {
     if($value instanceof MongoDate) {
       return $value;
