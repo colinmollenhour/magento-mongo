@@ -24,22 +24,10 @@ class Cm_Mongo_Block_Adminhtml_Enum_Grid extends Mage_Adminhtml_Block_Widget_Gri
       'index'          => '_id',
     ));
     
-    $this->addColumn('label', array(
+    $this->addColumn('name', array(
       'header'         => $this->__('Name'),
       'width'          => '100px',
-      'index'          => 'label',
-    ));
-    
-    $this->addColumn('aciton', array(
-      'header'         => $this->__('Actions'),
-      'width'          => '100px',
-      'type'           => 'action',
-      'actions'        => array(array(
-          'url'		   => array('base' => '*/*/edit'),
-          'caption'	   => $this->__('Edit'),
-          'field'      => 'id',
-          'index'      => 'id',
-      ))
+      'index'          => 'name',
     ));
     
     parent::_prepareColumns();

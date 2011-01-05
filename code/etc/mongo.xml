@@ -4,7 +4,7 @@
     <enum>
       <collection>enums</collection>
       <fields>
-        <id/>
+        <_id/>
         <name/>
         <defaults>       <type>hash</type><notnull>1</notnull></defaults>
         <stores>         <type>hash</type></stores>

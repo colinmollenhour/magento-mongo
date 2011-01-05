@@ -222,7 +222,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     }
 
     if ( ! is_null($value)) {
-      $data = $this->_getDocument($field, $value);
+      $data = $this->_getDocument($object, $field, $value);
       if ($data) {
         $this->hydrate($object, $data, TRUE);
       } else {
@@ -240,10 +240,9 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    * 
    * @param string $field
    * @param mixed $value
-   * @param boolean $cast  Cast the value to the mongo type?
    * @return type 
    */
-  protected function _getDocument($field, $value, $cast = TRUE)
+  protected function _getDocument(Cm_Mongo_Model_Abstract $object, $field, $value)
   {
     $value = $this->castToMongo($field, $value);
     return $this->_getReadAdapter()->selectCollection($this->_collectionName)->findOne(array($field => $value));
