@@ -23,7 +23,7 @@
       <created_timestamp/>              <!-- Enables automatic setting of created_at timestamp on object creation -->
       <updated_timestamp/>              <!-- Enables automatic setting of updated_at timestamp on object update -->
       <fields>
-        <id>           <type>int</type></id>
+        <_id>          <type>int</type></_id>
         <baz_id>       <type>reference</type><model>foo/baz</model></baz_id>
         <address>      <type>embedded</type><model>foo/address</model></address>
         <email/>       <!-- type defaults to string if not specified -->

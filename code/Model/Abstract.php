@@ -14,6 +14,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
   protected $_children;
   protected $_root;
   protected $_path;
+  protected $_operations;
   
   /**
    * Get or set the _isObjectNew flag. Defaults to TRUE.
@@ -49,6 +50,53 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
       return parent::getData(str_replace('.','/',$key));
     }
     return isset($this->_data[$key]) ? $this->_data[$key] : NULL;
+  }
+
+  /**
+   * Set data all at once, by key, or by nested key.
+   *
+   * Overridden to allow full arrays and nested values to be set. Otherwise,
+   * adding a value to an array using setData would lose the proper order.
+   *
+   * @param mixed $key
+   * @param mixed $value
+   * @param mixed $_value
+   * @return Cm_Mongo_Model_Abstract
+   */
+  public function setData($key, $value = NULL, $_value = NULL)
+  {
+    $this->_hasDataChanges = true;
+
+    // Set all new data
+    if(is_array($key)) {
+      if($this->_origData) {
+        foreach($key as $k => $v) {
+          $this->setData($k, $v);
+        }
+      }
+      else {
+        $this->_data = $key;
+      }
+    }
+
+    // Set one key to a value
+    else if($_value === NULL) {
+      // For arrays, unset the orig data so that the full value will be overwritten on update
+      if(is_array($value) && isset($this->_origData[$key]) && $this->_origData[$key] != $value) {
+        unset($this->_origData[$key]);
+      }
+      $this->_data[$key] = $value;
+    }
+
+    // Set a nested key to a value
+    else {
+      if( ! isset($this->_data[$key])) {
+        $this->_data[$key] = array();
+      }
+      $this->_data[$key][$value] = $_value;
+    }
+    
+    return $this;
   }
 
   /**
@@ -243,6 +291,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
       $this->_operations[$op] = array();
     }
     $this->_operations[$op][$key] = $value;
+    $this->_hasDataChanges = TRUE;
     return $this;
   }
   

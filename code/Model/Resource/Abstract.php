@@ -271,16 +271,36 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         $this->getEntitySchema()->updated_timestamp
       );
 
-      // Collect data for mongo and insert
+      // Collect data for mongo
       $data = $this->dehydrate($object);
+      $ops = $object->getPendingOperations();
+
+      // Set autoincrement
       if(empty($data['_id']) && $this->getEntitySchema()->autoincrement) {
         $data['_id'] = $this->getAutoIncrement();
       }
+
+      // Translate $set operations to simple insert data if possible
+      if(isset($ops['$set'])) {
+        foreach($ops['$set'] as $key => $value) {
+          if(strpos($key, '.') === false) {
+            $data[$key] = $value;
+            unset($ops['$set'][$key]);
+          }
+          // @TODO - expand . delimited keys
+        }
+        if( ! count($ops['$set'])) {
+          unset($ops['$set']);
+        }
+      }
+
+      // Insert document
       $this->_getWriteAdapter()->selectCollection($this->_collectionName)->insert($data, array('safe' => TRUE));
-      $object->setData('_id', $data['_id']);
+      if( ! $object->hasData('_id') || $data['_id'] != $object->getData('_id')) {
+        $object->setData('_id', $data['_id']);
+      }
       
-      // Update additional data
-      $ops = $object->getPendingOperations();
+      // Execute any pending operations
       if($ops) {
         $this->_getWriteAdapter()->selectCollection($this->_collectionName)->update(
           array($this->getIdFieldName() => $object->getId()),
@@ -376,7 +396,8 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    * Load mongo data into a model using the schema mappings
    * 
    * @param Varien_Object $object
-   * @param array $data 
+   * @param array $data
+   * @param boolean $original   Is the data from the database?
    */
   public function hydrate(Varien_Object $object, $data, $original = FALSE)
   {
@@ -426,9 +447,9 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         $object->setData($field, NULL);
       }
     }
-    $object->isObjectNew(FALSE);
     
     if($original) {
+      $object->isObjectNew(FALSE);
       $object->setOrigData();
     }
   }
