@@ -18,7 +18,6 @@ class Cm_Mongo_Model_Resource_Type_Mongo extends Mage_Core_Model_Resource_Type_A
     $conn = Mongo_Database::instance((string)$config->config, $config->asCanonicalArray());
 
     // Set profiler
-    $conn->profiling = Mage::getStoreConfigFlag('dev/debug/mongo_profiler');
     $conn->set_profiler(array($this, 'start_profiler'), array($this, 'stop_profiler'));
 
     return $conn;

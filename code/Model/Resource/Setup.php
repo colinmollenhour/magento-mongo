@@ -40,7 +40,7 @@ class Cm_Mongo_Model_Resource_Setup extends Mage_Core_Model_Resource_Setup
     $resModel = (string)$this->_connectionConfig->model;
     $modName = (string)$this->_moduleConfig[0]->getName();
 
-    $sqlFilesDir = Mage::getModuleDir('mongo', $modName).DS.$this->_resourceName;
+    $sqlFilesDir = Mage::getModuleDir('sql', $modName).DS.$this->_resourceName;
     if (!is_dir($sqlFilesDir) || !is_readable($sqlFilesDir)) {
       return false;
     }

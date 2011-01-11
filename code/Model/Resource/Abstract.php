@@ -603,4 +603,9 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   protected function _beforeDelete(Mage_Core_Model_Abstract $object){}
   protected function _afterDelete(Mage_Core_Model_Abstract $object){}
 
+  public function count($query)
+  {
+    return $this->getReadConnection()->selectCollection($this->_collectionName)->count($query);
+  }
+
 }

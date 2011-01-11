@@ -48,7 +48,7 @@
     
     <cache>
       <types>
-        <mongo_schema translate="label,description" module="api">
+        <mongo_schema translate="label,description" module="Cm_Mongo">
           <label>Mongo Schema Registry</label>
           <description>Mongo Schema description files (mongo.xml).</description>
           <tags>MONGO_SCHEMA</tags>
