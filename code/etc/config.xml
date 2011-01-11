@@ -11,7 +11,12 @@
     
     <resources>
       <mongo_setup>
+        <setup>
+          <module>Cm_Mongo</module>
+          <class>Cm_Mongo_Model_Resource_Setup</class>
+        </setup>
         <connection>
+          <model>mongo</model>
           <config>default</config>
           <server>localhost</server>
           <database>magento</database>
