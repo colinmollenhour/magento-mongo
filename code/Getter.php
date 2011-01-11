@@ -9,11 +9,11 @@ class Cm_Mongo_Getter
   /**
    * Useful for the getter property of a grid.
    *
-   * 'getter' => new Cm_Mongo_Getter('getFoo.getBar'),
+   * 'getter' => Cm_Mongo_Getter::factory('getFoo.getBar'),
    *
    * @param string $path
    */
-  public static function create($path)
+  public static function factory($path)
   {
     $getter = new self($path);
     return array($getter, 'fetch');
