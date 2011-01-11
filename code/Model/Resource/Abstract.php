@@ -11,6 +11,12 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /** @var string  The collection name in the database */
   protected $_collectionName;
 
+  /** @var Mongo_Collection */
+  protected $_readCollection;
+
+  /** @var Mongo_Collection */
+  protected $_writeCollection;
+
   /**
    * Standard resource model initialization
    *
@@ -35,6 +41,19 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   }
 
   /**
+   * Get the db read collection instance.
+   * 
+   * @return Mongo_Collection
+   */
+  protected function _getReadCollection()
+  {
+    if( ! $this->_readCollection) {
+      $this->_readCollection = $this->_getReadAdapter()->selectCollection($this->_collectionName);
+    }
+    return $this->_readCollection;
+  }
+
+  /**
    * Get the db write connection. Currently does not support alternate resources
    *
    * @return Mongo_Database
@@ -45,13 +64,40 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   }
 
   /**
-   * Temporary resolving collection compatibility
+   * Get the db write collection instance.
+   *
+   * @return Mongo_Collection
+   */
+  protected function _getWriteCollection()
+  {
+    if( ! $this->_writeCollection) {
+      if($this->_getReadAdapter() == $this->_getWriteAdapter()) {
+        $this->_writeCollection = $this->_readCollection;
+      } else {
+        $this->_writeCollection = $this->_getWriteAdapter()->selectCollection($this->_collectionName);
+      }
+    }
+    return $this->_writeCollection;
+  }
+
+  /**
+   * Make connection public.. Avoid usage
    *
    * @return Mongo_Database
    */
   public function getReadConnection()
   {
     return $this->_getReadAdapter();
+  }
+
+  /**
+   * Make collection public.. Avoid usage
+   *
+   * @return Mongo_Collection
+   */
+  public function getReadCollection()
+  {
+    return $this->_getReadCollection();
   }
 
   /**
@@ -245,7 +291,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   protected function _getDocument(Cm_Mongo_Model_Abstract $object, $field, $value)
   {
     $value = $this->castToMongo($field, $value);
-    return $this->_getReadAdapter()->selectCollection($this->_collectionName)->findOne(array($field => $value));
+    return $this->_getReadCollection()->findOne(array($field => $value));
   }
 
   /**
@@ -295,14 +341,14 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       }
 
       // Insert document
-      $this->_getWriteAdapter()->selectCollection($this->_collectionName)->insert($data, array('safe' => TRUE));
+      $this->_getWriteCollection()->insert($data, array('safe' => TRUE));
       if( ! $object->hasData('_id') || $data['_id'] != $object->getData('_id')) {
         $object->setData('_id', $data['_id']);
       }
       
       // Execute any pending operations
       if($ops) {
-        $this->_getWriteAdapter()->selectCollection($this->_collectionName)->update(
+        $this->_getWriteCollection()->update(
           array($this->getIdFieldName() => $object->getId()),
           $ops,
           array('upsert' => FALSE, 'multiple' => FALSE, 'safe' => TRUE)
@@ -334,7 +380,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         $ops['$set'] = $data;
       }
       if($ops) {
-        $this->_getWriteAdapter()->selectCollection($this->_collectionName)->update(
+        $this->_getWriteCollection()->update(
           array($this->getIdFieldName() => $object->getId()),
           $ops,
           array('upsert' => FALSE, 'multiple' => FALSE, 'safe' => TRUE)
@@ -360,7 +406,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       else {
         $ops['$set'] = $data;
       }
-      $this->_getWriteAdapter()->selectCollection($this->_collectionName)->update(
+      $this->_getWriteCollection()->update(
         array($this->getIdFieldName() => $object->getId()),
         $ops,
         array('upsert' => TRUE, 'multiple' => FALSE, 'safe' => TRUE)
@@ -384,7 +430,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   public function delete(Mage_Core_Model_Abstract $object)
   {
     $this->_beforeDelete($object);
-    $this->_getWriteAdapter()->selectCollection($this->_collectionName)->remove(
+    $this->_getWriteCollection()->remove(
       array($this->getIdFieldName() => $object->getId()),
       array('justOne' => TRUE, 'safe' => TRUE)
     );
@@ -567,6 +613,17 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   }
 
   /**
+   * Perform a basic count query (not using a cursor)
+   *
+   * @param array $query
+   * @return int
+   */
+  public function count($query)
+  {
+    return $this->getReadConnection()->selectCollection($this->_collectionName)->count($query);
+  }
+
+  /**
    * Flatten a nested array of values to update into . delimited keys
    * 
    * @param array $data
@@ -602,10 +659,5 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   protected function _afterSave(Mage_Core_Model_Abstract $object){}
   protected function _beforeDelete(Mage_Core_Model_Abstract $object){}
   protected function _afterDelete(Mage_Core_Model_Abstract $object){}
-
-  public function count($query)
-  {
-    return $this->getReadConnection()->selectCollection($this->_collectionName)->count($query);
-  }
 
 }
