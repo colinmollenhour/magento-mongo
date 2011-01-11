@@ -101,24 +101,6 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   }
 
   /**
-   * No function
-   */
-  public function beginTransaction()
-  {}
-  
-  /**
-   * No function
-   */
-  public function commit()
-  {}
-  
-  /**
-   * No function
-   */
-  public function rollback()
-  {}
-  
-  /**
    * In Mongo, there is always an _id column
    *
    * @return string
@@ -199,19 +181,6 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   }
 
   /**
-   * Get an instance of an embedded model for the given field.
-   * 
-   * @param type $field
-   * @return Cm_Mongo_Model_Abstract
-   */
-  public function getFieldModel($field)
-  {
-    $model = (string) $this->getFieldMapping($field)->model;
-    $object = Mage::getModel($model);
-    return $object;
-  }
-
-  /**
    * Get the field mapping data for the given field name.
    *
    * @param string $field
@@ -224,6 +193,42 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       throw new Exception("$this->_resourceModel/$this->_entityName does not have a field named $field.");
     }
     return $mapping;
+  }
+
+  /**
+   * Get the embedded/referenced model name for the given field.
+   *
+   * @param string $field
+   * @return string
+   */
+  public function getFieldModelName($field)
+  {
+    if( ! isset($this->_fieldModels[$field])) {
+      $this->_fieldModels[$field] = (string) $this->getFieldMapping($field)->model;
+    }
+    return $this->_fieldModels[$field];
+  }
+
+  /**
+   * Get an instance of an embedded/referenced model for the given field.
+   * 
+   * @param type $field
+   * @return Cm_Mongo_Model_Abstract
+   */
+  public function getFieldModel($field)
+  {
+    return Mage::getModel($this->getFieldModelName($field));
+  }
+
+  /**
+   * Get the resource instance of an embedded/referenced model for the given field.
+   *
+   * @param type $field
+   * @return Cm_Mongo_Model_Resource_Abstract
+   */
+  public function getFieldResource($field)
+  {
+    return Mage::getResourceSingleton($this->getFieldModelName($field));
   }
 
   /**
@@ -613,17 +618,6 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   }
 
   /**
-   * Perform a basic count query (not using a cursor)
-   *
-   * @param array $query
-   * @return int
-   */
-  public function count($query)
-  {
-    return $this->getReadConnection()->selectCollection($this->_collectionName)->count($query);
-  }
-
-  /**
    * Flatten a nested array of values to update into . delimited keys
    * 
    * @param array $data
@@ -653,11 +647,62 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     }
     return $result;
   }
-  
+
+  /* Optional callback placeholders */
   protected function _afterLoad(Mage_Core_Model_Abstract $object){}
   protected function _beforeSave(Mage_Core_Model_Abstract $object){}
   protected function _afterSave(Mage_Core_Model_Abstract $object){}
   protected function _beforeDelete(Mage_Core_Model_Abstract $object){}
   protected function _afterDelete(Mage_Core_Model_Abstract $object){}
+
+  /* Overridden only to disable */
+  public function beginTransaction(){}
+  public function commit(){}
+  public function rollback(){}
+
+
+  /* * * * * * * * *
+   * Object Caching
+   */
+
+  /**
+   * Adds a collection to the resource's collection cache
+   *
+   * @param Cm_Mongo_Model_Resource_Collection_Abstract $collection
+   */
+  public function addCollectionToCache(Cm_Mongo_Model_Resource_Collection_Abstract $collection)
+  {
+    $hash = spl_object_hash($collection);
+    $this->_caches[$hash] = $collection;
+  }
+
+  /**
+   * Removes a collection from the resource's collection cache
+   *
+   * @param Cm_Mongo_Model_Resource_Collection_Abstract $collection
+   */
+  public function removeCollectionFromCache(Cm_Mongo_Model_Resource_Collection_Abstract $collection)
+  {
+    $hash = spl_object_hash($collection);
+    unset($this->_caches[$hash]);
+  }
+
+  /**
+   * Fetches an object from the resource's cache
+   *
+   * @param mixed $id
+   * @return Cm_Mongo_Model_Abstract
+   */
+  public function getCachedObject($id)
+  {
+    foreach($this->_caches as $collection)
+    {
+      /* @var Cm_Mongo_Model_Resource_Collection_Abstract $collection */
+      if($item = $collection->getItemById($id)) {
+        return $item;
+      }
+    }
+    return NULL;
+  }
 
 }

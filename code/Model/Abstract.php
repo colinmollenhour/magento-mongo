@@ -15,7 +15,17 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
   protected $_root;
   protected $_path;
   protected $_operations;
-  
+
+  /**
+   * Get the resource instance. (overridden to improve IDE chaining)
+   *
+   * @return Cm_Mongo_Model_Resource_Abstract
+   */
+  public function getResource()
+  {
+    return $this->_getResource();
+  }
+
   /**
    * Get or set the _isObjectNew flag. Defaults to TRUE.
    * 
@@ -136,7 +146,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
   protected function _getEmbeddedObject($field)
   {
     if( ! $this->hasData($field) || $this->getData($field) === NULL) {
-      $object = $this->getResource()->getFieldModel($field);
+      $object = Mage::getModel($this->getResource()->getFieldModelName($field));
       $this->_setEmbeddedObject($field, $object);
     }
     else if( ! $this->getData($field) instanceof Cm_Mongo_Model_Abstract) {
@@ -208,10 +218,23 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
    */
   public function getReferencedObject($field)
   {
-    if( ! isset($this->_references[$field])) {
-      $object = $this->getResource()->getFieldModel($field);
-      if($this->hasData($field)) {
-        $object->load($this->getData($field));
+    if( ! isset($this->_references[$field]))
+    {
+      $modelName = $this->getResource()->getFieldModelName($field);
+
+      // If there is a reference, load from cache or from database
+      if($refId = $this->getData($field))
+      {
+        $object = Mage::getResourceSingleton($modelName)->getCachedObject($refId);
+        if( ! $object) {
+          $object = Mage::getModel($modelName)->load($refId);
+        }
+      }
+
+      // Otherwise use empty object
+      else
+      {
+        $object = Mage::getModel($modelName);
       }
       $this->_references[$field] = $object;
     }
@@ -241,8 +264,8 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract {
   public function getReferencedCollection($field)
   {
     if( ! isset($this->_references[$field])) {
-      $model = $this->getResource()->getFieldModel($field);
-      $collection = Mage::getModel($model)->getCollection()->loadAll($this->getData($field));
+      $modelName = $this->getResource()->getFieldModelName($field);
+      $collection = Mage::getSingleton($modelName)->getCollection()->addFieldToFilter('_id', $this->getData($field));
       $this->_references[$field] = $collection;
     }
     return $this->_references[$field];

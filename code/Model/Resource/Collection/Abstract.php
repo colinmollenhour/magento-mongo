@@ -52,14 +52,48 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
-  * Get resource instance
-  *
-  * @return Cm_Mongo_Model_Resource_Abstract
-  */
+   * Preload referenced objects for the current (loaded) query.
+   *
+   * @param string|array $field
+   * @param string $collectionName
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   */
+  public function preloadReferences($field, $collectionName = null)
+  {
+    // Handle arrays as multiple calls to preload
+    if(is_array($field)) {
+      foreach($field as $key => $value) {
+        $this->preloadReferences($key, $value);
+      }
+      return $this;
+    }
+
+    // Get all ids for the given field
+    $ids = array();
+    foreach($this->getItems() as $id => $item) {
+      if($ref = $item->getData($field)) {
+        $ids[] = $ref;
+      }
+    }
+
+    // Load the referenced objects using $in and cache them in the appropriate resource
+    if($ids) {
+      $collection = Mage::getResourceModel($collectionName)->addFieldToFilter('_id', '$in', $ids);
+      Mage::getResourceSingleton($this->getResource()->getFieldModelName($field))->addCollectionToCache($collection);
+    }
+
+    return $this;
+  }
+
+  /**
+   * Get resource instance
+   *
+   * @return Cm_Mongo_Model_Resource_Abstract
+   */
   public function getResource()
   {
     if (empty($this->_resource)) {
-      $this->_resource = Mage::getResourceModel($this->_resourceModel);
+      $this->_resource = Mage::getResourceSingleton($this->_resourceModel);
     }
     return $this->_resource;
   }
@@ -406,11 +440,12 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    *
    * @param string $field
    * @param null|string|array $condition
+   * @param null|string|array $condition
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
-  public function addFieldToFilter($field, $condition=null)
+  public function addFieldToFilter($field, $condition=null, $_condition=null)
   {
-    $this->_query->find($this->_getCondition($field, $condition));
+    $this->_query->find($this->_getCondition($field, $condition, $_condition));
     return $this;
   }
 
@@ -430,9 +465,12 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    * @param integer|string|array $condition
    * @return array
    */
-  protected function _getCondition($fieldName, $condition)
+  protected function _getCondition($fieldName, $condition, $_condition)
   {
-    if (is_array($condition)) {
+    if ( $_condition !== NULL) {
+      $query = array($fieldName => array($condition => $_condition));
+    }
+    else if (is_array($condition)) {
       if (isset($condition['from']) || isset($condition['to'])) {
         $query = array();
         if (isset($condition['from'])) {
