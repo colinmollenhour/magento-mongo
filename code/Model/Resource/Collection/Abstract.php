@@ -53,6 +53,8 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
 
   /**
    * Preload referenced objects for the current (loaded) query.
+   * 
+   * Returns the referenced collection so that additional filters/parameters may be set.
    *
    * @param string|array $field
    * @param string $collectionName
@@ -75,14 +77,12 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
         $ids[] = $ref;
       }
     }
-
+    
     // Load the referenced objects using $in and cache them in the appropriate resource
-    if($ids) {
-      $collection = Mage::getResourceModel($collectionName)->addFieldToFilter('_id', '$in', $ids);
-      Mage::getResourceSingleton($this->getResource()->getFieldModelName($field))->addCollectionToCache($collection);
-    }
+    $collection = Mage::getResourceModel($collectionName)->addFieldToFilter('_id', '$in', $ids);
+    Mage::getResourceSingleton($this->getResource()->getFieldModelName($field))->addCollectionToCache($collection);
 
-    return $this;
+    return $collection;
   }
 
   /**
@@ -467,6 +467,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    */
   protected function _getCondition($fieldName, $condition, $_condition)
   {
+    // When using third argument, no type casting is performed
     if ( $_condition !== NULL) {
       $query = array($fieldName => array($condition => $_condition));
     }
@@ -483,9 +484,9 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
             }
           }
           else {
-            $from = new MongoDate($condition['from'].' 00:00:00');
+            $from = new MongoDate(strtotime($condition['from'].' 00:00:00'));
           }
-          $query[$fieldName] = array('$gte' => $from);
+          $query[$fieldName] = array('$gte' => $this->_castFieldValue($fieldName, $from));
         }
         if (isset($condition['to'])) {
           if (empty($condition['date'])) {
@@ -497,19 +498,20 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
             }
           }
           else {
-            $to = new MongoDate($condition['to'].' 00:00:00');
+            $to = new MongoDate(strtotime($condition['to'].' 00:00:00'));
           }
-          $query[$fieldName] = array('$lte' => $to);
+          $query[$fieldName] = array('$lte' => $this->_castFieldValue($fieldName, $to));
         }
       }
       elseif (isset($condition['eq'])) {
-        $query = array($fieldName => $condition['eq']);
+        $query = array($fieldName => $this->_castFieldValue($fieldName, $condition['eq']));
       }
       elseif (isset($condition['neq'])) {
-        $query = array($fieldName => array('$ne' => $condition['neq']));
+        $query = array($fieldName => array('$ne' => $this->_castFieldValue($fieldName, $condition['neq'])));
       }
       elseif (isset($condition['like'])) {
-        $query = $condition['like'];
+        $query = preg_quote($condition['like']);
+        $query = str_replace('\_', '_', $query); // unescape SQL syntax
         if(strlen($query) && $query{0} != '%') {
           $query = '^'.$query;
         }
@@ -517,10 +519,11 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
           $query = $query.'$';
         }
         $query = trim($query,'%');
-        $query = array($fieldName => new MongoRegex('/'.str_replace(array('%','/'),array('.*','\/'),$query).'/i'));
+        $query = array($fieldName => new MongoRegex('/'.str_replace('%','.*',$query).'/i'));
       }
       elseif (isset($condition['nlike'])) {
-        $query = $condition['nlike'];
+        $query = preg_quote($condition['nlike']);
+        $query = str_replace('\_', '_', $query); // unescape SQL syntax
         if(strlen($query) && $query{0} != '%') {
           $query = '^'.$query;
         }
@@ -528,13 +531,35 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
           $query = $query.'$';
         }
         $query = trim($query,'%');
-        $query = array($fieldName => array('$not' => new MongoRegex('/'.str_replace(array('%','/'),array('.*','\/'),$query).'/i')));
+        $query = array($fieldName => array('$not' => new MongoRegex('/'.str_replace('%','.*',$query).'/i')));
       }
       elseif (isset($condition['notnull'])) {
-        $query = array($fieldName => array('$not' => array('$type' => 10)));
+        $query = array($fieldName => array('$not' => array('$type' => Mongo_Database::TYPE_NULL)));
       }
       elseif (isset($condition['null'])) {
-        $query = array($fieldName => array('$type' => 10));
+        $query = array($fieldName => array('$type' => Mongo_Database::TYPE_NULL));
+      }
+      elseif (isset($condition['is'])) {
+        $query = strtoupper($condition['is']);
+        if($query == 'NULL' || $query === NULL) {
+          $query = array($fieldName => array('$type' => Mongo_Database::TYPE_NULL));
+        } else if($query == 'NOT NULL') {
+          $query = array($fieldName => array('$not' => array('$type' => Mongo_Database::TYPE_NULL)));
+        }
+      }
+      elseif (isset($condition['in'])) {
+        $values = array();
+        foreach($condition['in'] as $value) {
+          $values[] = $this->_castFieldValue($fieldName, $value);
+        }
+        $query = array($fieldName => array('$in' => $values));
+      }
+      elseif (isset($condition['nin'])) {
+        $values = array();
+        foreach($condition['nin'] as $value) {
+          $values[] = $this->_castFieldValue($fieldName, $value);
+        }
+        $query = array($fieldName => array('$nin' => $values));
       }
       elseif (isset($condition[0])) {
         $query = array();
@@ -550,6 +575,18 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       $query = array($fieldName => $condition);
     }
     return $query;
+  }
+
+  /**
+   * Cast values to the proper type before running query
+   * 
+   * @param string $field
+   * @param mixed $value
+   * @return mixed
+   */
+  protected function _castFieldValue($field, $value)
+  {
+    return $this->getResource()->castToMongo($field, $value);
   }
 
   /**
