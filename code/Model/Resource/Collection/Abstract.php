@@ -456,8 +456,12 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    *
    * If $condition is assoc array - one of the following structures is expected:
    * - array("from"=>$fromValue, "to"=>$toValue)
-   * - array("like"=>$likeValue)
-   * - array("notnull"=>TRUE)
+   * - array("eq|neq"=>$likeValue)
+   * - array("like|nlike"=>$likeValue)
+   * - array("null|notnull"=>TRUE)
+   * - array("is"=>"NULL|NOT NULL")
+   * - array("in|nin"=>$array)
+   * - array("$__"=>$value)
    *
    * If $condition is numerically indexed array then treated as $or conditions
    *
@@ -504,7 +508,14 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
         }
       }
       elseif (isset($condition['eq'])) {
-        $query = array($fieldName => $this->_castFieldValue($fieldName, $condition['eq']));
+        // Search array for presence of a single value
+        if( ! is_array($condition['eq']) && $this->getResource()->getFieldMapping($fieldName)->type == 'set') {
+          $query = array($fieldName => $condition['eq']);
+        }
+        // Search for an exact match
+        else {
+          $query = array($fieldName => $this->_castFieldValue($fieldName, $condition['eq']));
+        }
       }
       elseif (isset($condition['neq'])) {
         $query = array($fieldName => array('$ne' => $this->_castFieldValue($fieldName, $condition['neq'])));
