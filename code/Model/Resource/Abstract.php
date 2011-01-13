@@ -72,7 +72,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   {
     if( ! $this->_writeCollection) {
       if($this->_getReadAdapter() == $this->_getWriteAdapter()) {
-        $this->_writeCollection = $this->_readCollection;
+        $this->_writeCollection = $this->_getReadCollection();
       } else {
         $this->_writeCollection = $this->_getWriteAdapter()->selectCollection($this->_collectionName);
       }
