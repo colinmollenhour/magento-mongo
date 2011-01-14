@@ -192,11 +192,13 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
             }
           }
         }
-        $ids = array_unique($ids);
       }
       else {
         throw new Mage_Core_Exception("Cannot get referenced collection for field '$field' of type '$fieldype'.");
       }
+
+      // array_unique is slow, but required for compatibility with MongoId and possibly other id data types
+      $ids = array_unique($ids);
     
       // Instantiate a collection filtered to the referenced objects using $in
       $modelName = $this->getResource()->getFieldModelName($field);
