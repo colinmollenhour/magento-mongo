@@ -100,15 +100,33 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   {
     if(empty($this->_referencedCollections[$field]))
     {
-      // Get all ids for the given field
       $ids = array();
-      foreach($this->getItems() as $id => $item) {
-        if($ref = $item->getData($field)) {
-          $ids[] = $ref;
+
+      // Get all ids for the given field
+      $fieldType = (string) $this->getResource()->getFieldMapping($field)->type;
+      if($fieldType == 'reference') {
+        foreach($this->getItems() as $item) {
+          if($ref = $item->getData($field)) {
+            $ids[] = $ref;
+          }
         }
       }
+      // Get unique set of ids from field
+      else if($fieldType == 'referenceSet') {
+        foreach($this->getItems() as $item) {
+          if($refSet = $item->getData($field)) {
+            foreach($refSet as $ref) {
+              $ids[] = $ref;
+            }
+          }
+        }
+        $ids = array_unique($ids);
+      }
+      else {
+        throw new Mage_Core_Exception("Cannot get referenced collection for field '$field' of type '$fieldype'.");
+      }
     
-      // Load the referenced objects using $in and cache them in the appropriate resource
+      // Instantiate a collection filtered to the referenced objects using $in
       $modelName = $this->getResource()->getFieldModelName($field);
       $collection = Mage::getSingleton($modelName)->getCollection();
       $collection->addFieldToFilter('_id', '$in', $ids);
