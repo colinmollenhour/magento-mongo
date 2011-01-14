@@ -19,7 +19,12 @@ class Cm_Mongo_Helper_Data extends Mage_Core_Helper_Abstract
     }
     return $renderers;
   }
-  
+
+  /**
+   * Render the profiler contents as HTML
+   *
+   * @return string
+   */
   public function getProfilerHtml()
   {
     return Mage::app()->getLayout()->createBlock('mongo/profiler')->toHtml();

@@ -193,6 +193,29 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
+   * Get all _id's for the current query. If $noLoad is true and the collection is not already loaded
+   * then a query will be run returning only the _ids and no objects will be hydrated.
+   * 
+   * @param boolean $noLoad
+   * @return array
+   */
+  public function getAllIds($noLoad = FALSE)
+  {
+    if($this->isLoaded() || ! $noLoad) {
+      return parent::getAllIds();
+    }
+
+    // Use fast method of getting ids, full documents not loaded
+    $idsQuery = clone $this->_query;
+    $idsQuery->set_option('fields', array('_id' => 1));
+    $ids = array();
+    foreach($idsQuery->cursor() as $key => $document) {
+      $ids[] = $document['_id'];
+    }
+    return $ids;
+  }
+
+  /**
    * Before load action
    *
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
@@ -436,7 +459,8 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
-   * Add field filter to collection
+   * Add field filter to collection.
+   * If $field is an array then each key => value is applied as a separate condition.
    *
    * @param string $field
    * @param null|string|array $condition
@@ -445,12 +469,23 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    */
   public function addFieldToFilter($field, $condition=null, $_condition=null)
   {
-    $this->_query->find($this->_getCondition($field, $condition, $_condition));
+    if (is_array($field)) {
+      foreach($field as $fieldName => $condition) {
+        $this->_query->find($this->_getCondition($field, $condition));
+      }
+    }
+    else {
+      $this->_query->find($this->_getCondition($field, $condition, $_condition));
+    }
     return $this;
   }
 
   /**
    * Build query condition
+   *
+   * Filter by other collection value using the -> operator to separate the
+   * field that references the other collection and the field in the other collection.
+   * - ('bar_id->name', 'eq', 'Baz')
    *
    * If $condition is not array - exact value will be filtered
    *
@@ -471,10 +506,21 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    */
   protected function _getCondition($fieldName, $condition, $_condition)
   {
+    // Handle cross-collection filters with field names like bar_id:name
+    if(strpos($fieldName, '->')) {
+      list($reference,$referenceField) = explode('->', $fieldName);
+      //$this->getResource()->getFieldModelName($reference)
+      $collection = $this->getResource()->getFieldModel($reference)->getCollection();
+      $collection->addFieldToFilter($referenceField, $condition, $_condition);
+      $query = array($reference => array('$in' => $collection->getAllIds(TRUE)));
+    }
+
     // When using third argument, no type casting is performed
-    if ( $_condition !== NULL) {
+    else if ( $_condition !== NULL) {
       $query = array($fieldName => array($condition => $_condition));
     }
+
+    // Process special condition keys
     else if (is_array($condition)) {
       if (isset($condition['from']) || isset($condition['to'])) {
         $query = array();
@@ -490,7 +536,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
           else {
             $from = new MongoDate(strtotime($condition['from'].' 00:00:00'));
           }
-          $query[$fieldName] = array('$gte' => $this->_castFieldValue($fieldName, $from));
+          $query['$gte'] = $this->_castFieldValue($fieldName, $from);
         }
         if (isset($condition['to'])) {
           if (empty($condition['date'])) {
@@ -504,8 +550,9 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
           else {
             $to = new MongoDate(strtotime($condition['to'].' 00:00:00'));
           }
-          $query[$fieldName] = array('$lte' => $this->_castFieldValue($fieldName, $to));
+          $query['$lte'] = $this->_castFieldValue($fieldName, $to);
         }
+        $query = array($fieldName => $query);
       }
       elseif (isset($condition['eq'])) {
         // Search array for presence of a single value
@@ -582,7 +629,10 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       else {
         $query = array($fieldName => $condition);
       }
-    } else {
+    }
+
+    // Condition is scalar
+    else {
       $query = array($fieldName => $condition);
     }
     return $query;
