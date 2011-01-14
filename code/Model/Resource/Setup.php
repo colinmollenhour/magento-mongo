@@ -27,6 +27,30 @@ class Cm_Mongo_Model_Resource_Setup extends Mage_Core_Model_Resource_Setup
   }
 
   /**
+   * Run javascript through the mongo shell (uses temporary file and exec)
+   *
+   * @param string $js
+   * @return Cm_Mongo_Model_Resource_Setup
+   */
+  public function runJs($js)
+  {
+    $filename = tempnam(sys_get_temp_dir(), 'magento').'.js';
+    file_put_contents($filename, $js);
+    try {
+      exec("mongo --quiet {$this->_connectionConfig->server}/{$this->_connectionConfig->database} $filename", $output, $status);
+    }
+    catch(Exception $e) {
+      unlink($filename);
+      throw $e;
+    }
+    unlink($filename);
+    if($status != 0) {
+      throw new Exception($output);
+    }
+    return $this;
+  }
+
+  /**
    * Run module modification files. Return version of last applied upgrade (false if no upgrades applied)
    *
    * @param   string $actionType install|upgrade|uninstall
@@ -108,30 +132,5 @@ class Cm_Mongo_Model_Resource_Setup extends Mage_Core_Model_Resource_Setup
     self::$_hadUpdates = true;
     return $modifyVersion;
   }
-
-  /**
-   * Run javascript through the mongo shell (uses temporary file and exec)
-   *
-   * @param string $js
-   * @return Cm_Mongo_Model_Resource_Setup
-   */
-  public function runJs($js)
-  {
-    $filename = tempnam(sys_get_temp_dir(), 'magento').'.js';
-    file_put_contents($filename, $js);
-    try {
-      exec("mongo --quiet {$this->_connectionConfig->server}/{$this->_connectionConfig->database} $filename", $output, $status);
-    }
-    catch(Exception $e) {
-      unlink($filename);
-      throw $e;
-    }
-    unlink($filename);
-    if($status != 0) {
-      throw new Exception($output);
-    }
-    return $this;
-  }
-
 
 }

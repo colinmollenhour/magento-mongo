@@ -4,6 +4,7 @@
  */
 class Cm_Mongo_Model_Schema extends Varien_Simplexml_Config
 {
+
   const CACHE_KEY     = 'mongo_schema';
   const CACHE_TAG     = 'mongo_schema';
 

@@ -7,14 +7,17 @@ class Cm_Mongo_Model_Mongo_Enum extends Cm_Mongo_Model_Resource_Abstract
   {
     $this->_init('mongo/enum');
   }
-  
-  protected function _getDocument(Cm_Mongo_Model_Abstract $object, $field, $value)
+
+  public function getDefaultLoadFields($object)
   {
-    $fields = array('name' => 1, 'defaults' => 1);
+    $fields = array(
+      'name' => 1,
+      'defaults' => 1
+    );
     if($object->getStoreId()) {
       $fields['stores.'.Mage::app()->getStore($object->getStoreId())->getCode()] = 1;
     }
-    return $this->_getReadCollection()->findOne(array($field => $value), $fields);
+    return $fields;
   }
-  
+
 }

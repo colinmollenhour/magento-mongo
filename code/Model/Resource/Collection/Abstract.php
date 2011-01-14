@@ -36,7 +36,8 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     parent::__construct();
     $this->_construct();
     $this->_resource = $resource;
-    $this->setConnection($this->getResource()->getReadConnection());
+    $this->_conn = $this->getResource()->getReadConnection();
+    $this->_query = $this->_conn->selectCollection($this->getCollectionName());
   }
   
   /**
@@ -63,6 +64,46 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
+   * Add field filter to collection.
+   *
+   * If $field is an array then each key => value is applied as a separate condition.
+   *
+   * Filter by other collection value using the -> operator to separate the
+   * field that references the other collection and the field in the other collection.
+   * - ('bar_id->name', 'eq', 'Baz')
+   *
+   * If $condition is not array - exact value will be filtered
+   *
+   * If $condition is assoc array - one of the following structures is expected:
+   * - array("from"=>$fromValue, "to"=>$toValue)
+   * - array("eq|neq"=>$likeValue)
+   * - array("like|nlike"=>$likeValue)
+   * - array("null|notnull"=>TRUE)
+   * - array("is"=>"NULL|NOT NULL")
+   * - array("in|nin"=>$array)
+   * - array("$__"=>$value) - Any mongo operator
+   *
+   * If $condition is a numerically indexed array then it is treated as $or conditions
+   *
+   * @param string $field
+   * @param null|string|array $condition
+   * @param null|string|array $condition
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   */
+  public function addFieldToFilter($field, $condition=null, $_condition=null)
+  {
+    if (is_array($field)) {
+      foreach($field as $fieldName => $condition) {
+        $this->_query->find($this->_getCondition($field, $condition));
+      }
+    }
+    else {
+      $this->_query->find($this->_getCondition($field, $condition, $_condition));
+    }
+    return $this;
+  }
+
+  /**
    * Adds a field to be preloaded after the collection is loaded.
    * If the collection is already loaded it will preload the referenced
    * collection immediately.
@@ -77,7 +118,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
         $this->_preloadFields[$field] = TRUE;
       }
     }
-    else if(empty($this->_preloadFields[$field])) {
+    else {
       $this->_preloadFields[$field] = TRUE;
     }
 
@@ -86,6 +127,37 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     }
 
     return $this;
+  }
+
+  /**
+   * Add (or remove) fields to query results.
+   *
+   * @param string|array $field
+   * @param boolean $include
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   */
+  public function addFieldToResults($field, $include = 1)
+  {
+    if( ! is_array($field)) {
+      $field = array($field => $include);
+    }
+    $include = (int) $include;
+
+    $this->_query->fields($fields, $include);
+
+    return $this;
+  }
+
+  /**
+   * Cast values to the proper type before running query
+   *
+   * @param string $field
+   * @param mixed $value
+   * @return mixed
+   */
+  public function castFieldValue($field, $value)
+  {
+    return $this->getResource()->castToMongo($field, $value);
   }
 
   /**
@@ -190,56 +262,16 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
   
   /**
-   * Strictly for backwards compatibility with MySQL
-   * 
-   * @return Mongo_Collection
-   */
-  public function getSelect()
-  {
-    return $this->getQuery();
-  }
-
-  /**
-   * Set the mongo database instance
-   *
-   * @param Mongo_Database $conn
-   * @return Cm_Mongo_Model_Resource_Abstract
-   */
-  public function setConnection($conn)
-  {
-    $this->_conn = $conn;
-    $this->_query = $this->_conn->selectCollection($this->getCollectionName());
-    return $this;
-  }
-
-  /**
-   * Get collection size
+   * Get collection size (ignoring limit and skip)
    *
    * @return int
    */
   public function getSize()
   {
     if (is_null($this->_totalRecords)) {
-      $this->_renderFilters();
       $this->_totalRecords = $this->getQuery()->count(FALSE); // false ignores limit and skip
     }
     return intval($this->_totalRecords);
-  }
-
-  /**
-   * Get SQL for get record count
-   *
-   * @return Mongo_Collection
-   */
-  public function getCountQuery()
-  {
-    $this->_renderFilters();
-
-    $query = clone $this->getQuery();
-    $query->unset_option('sort')
-          ->unset_option('limit')
-          ->unset_option('skip');
-    return $query;
   }
 
   /**
@@ -266,43 +298,6 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
-   * Before load action
-   *
-   * @return Cm_Mongo_Model_Resource_Collection_Abstract
-   */
-  protected function _beforeLoad()
-  {
-    return $this;
-  }
-
-  /**
-   * Render find conditions
-   *
-   * @return  Cm_Mongo_Model_Resource_Collection_Abstract
-   */
-  protected function _renderFilters()
-  {
-    if ($this->_isFiltersRendered) {
-      return $this;
-    }
-    foreach ($this->_filters as $filter) {
-      switch ($filter['type']) {
-        case 'or' :
-          $this->_query->find('$or', array($filter['field'] => $filter['value']));
-          break;
-        case 'string' :
-          $this->_query->find('$where', $filter['value']);
-          break;
-        case 'and':
-        default:
-          $this->_query->find($filter['field'], $filter['value']);
-      }
-    }
-    $this->_isFiltersRendered = true;
-    return $this;
-  }
-
-  /**
    * Add cursor order
    *
    * @param   string $field
@@ -310,18 +305,6 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    * @return  Cm_Mongo_Model_Resource_Collection_Abstract
    */
   public function setOrder($field, $direction = self::SORT_ORDER_DESC)
-  {
-    return $this->_setOrder($field, $direction);
-  }
-
-  /**
-   * self::setOrder() alias
-   *
-   * @param string $field
-   * @param string $direction
-   * @return Cm_Mongo_Model_Resource_Collection_Abstract
-   */
-  public function addOrder($field, $direction = self::SORT_ORDER_DESC)
   {
     return $this->_setOrder($field, $direction);
   }
@@ -339,61 +322,6 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
-   * Add sort order to the end or to the beginning
-   *
-   * @param string $field
-   * @param string $direction
-   * @param bool $unshift
-   * @return Cm_Mongo_Model_Resource_Collection_Abstract
-   */
-  protected function _setOrder($field, $direction, $unshift = false)
-  {
-    $direction = (strtoupper($direction) == self::SORT_ORDER_ASC) ? Mongo_Collection::ASC : Mongo_Collection::DESC;
-
-    // emulate associative unshift
-    if ($unshift) {
-      $orders = array($field => $direction);
-      foreach ((array)$this->_query->get_option('sort') as $key => $_direction) {
-        if (!isset($orders[$key])) {
-          $orders[$key] = $_direction;
-        }
-      }
-      $this->_query->set_option('sort', $orders);
-    }
-    else {
-      $this->_query->sort($field, $direction);
-    }
-    return $this;
-  }
-
-  /**
-   * Render sql select orders
-   *
-   * @return  Cm_Mongo_Model_Resource_Collection_Abstract
-   */
-  protected function _renderOrders()
-  {
-    // already rendered
-    return $this;
-  }
-
-  /**
-   * Render sql select limit
-   *
-   * @return  Cm_Mongo_Model_Resource_Collection_Abstract
-   */
-  protected function _renderLimit()
-  {
-    if($this->_pageSize){
-      if($this->getCurPage() > 1) {
-        $this->_query->skip(($this->getCurPage()-1) * $this->_pageSize);
-      }
-      $this->_query->limit($this->_pageSize);
-    }
-    return $this;
-  }
-
-  /**
    * Load data
    *
    * @param  boolean  $printQuery
@@ -407,8 +335,11 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     }
 
     $documents = $this->getData();
-    $this->printLogQuery($printQuery, $logQuery);
     $this->resetData();
+
+    if($printQuery || $logQuery) {
+      $this->debugQuery($printQuery, $logQuery);
+    }
 
     if (is_array($documents)) {
       $idFieldName = $this->getIdFieldName();
@@ -436,11 +367,11 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    */
   public function getData()
   {
-    if ($this->_data === null) {
+    if ($this->_data === null)
+    {
       $this->_beforeLoad();
-      $this->_renderFilters()
-           ->_renderOrders()
-           ->_renderLimit();
+      $this->_renderLimit();
+      $this->_renderFields();
       $this->_data = $this->_query->as_array(FALSE);
       $this->_afterLoadData();
     }
@@ -448,13 +379,20 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
-   * Process loaded collection data
-   *
-   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   * @param boolean $printQuery
+   * @param boolean $logQuery
+   * @return  string
    */
-  protected function _afterLoadData()
+  public function debugQuery($printQuery = false, $logQuery = false)
   {
-    return $this;
+    $query = $this->getQuery()->inspect();
+    if ($printQuery) {
+      echo $query;
+    }
+    if ($logQuery){
+      Mage::log($query);
+    }
+    return $query;
   }
 
   /**
@@ -469,11 +407,11 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
-   * Reset collection
+   * Reset collection to fresh state.
    *
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
-  protected function _reset()
+  public function reset()
   {
     $this->getQuery()->reset();
     $this->_setIsLoaded(false);
@@ -485,13 +423,47 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
+   * Save all the entities in the collection
+   *
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   */
+  public function save()
+  {
+    foreach ($this->getItems() as $item) {
+      $item->save();
+    }
+    return $this;
+  }
+
+  /**
+   * Before load action
+   *
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   */
+  protected function _beforeLoad()
+  {
+    return $this;
+  }
+
+  /**
+   * Process loaded collection data
+   *
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   */
+  protected function _afterLoadData()
+  {
+    return $this;
+  }
+
+  /**
    * Load references
    *
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
   protected function _loadReferences()
   {
-    foreach($this->_preloadFields as $field => $true) {
+    foreach($this->_preloadFields as $field => $true)
+    {
       if(isset($this->_referencedCollections[$field])) {
         continue;
       }
@@ -513,63 +485,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
-   * Print and/or log query
-   *
-   * @param boolean $printQuery
-   * @param boolean $logQuery
-   * @return  Cm_Mongo_Model_Resource_Collection_Abstract
-   */
-  public function printLogQuery($printQuery = false, $logQuery = false, $sql = null) {
-    if ($printQuery) {
-      echo $this->getQuery()->inspect();
-    }
-    if ($logQuery){
-      Mage::log($this->getQuery()->inspect());
-    }
-    return $this;
-  }
-
-  /**
-   * Add field filter to collection.
-   * If $field is an array then each key => value is applied as a separate condition.
-   *
-   * @param string $field
-   * @param null|string|array $condition
-   * @param null|string|array $condition
-   * @return Cm_Mongo_Model_Resource_Collection_Abstract
-   */
-  public function addFieldToFilter($field, $condition=null, $_condition=null)
-  {
-    if (is_array($field)) {
-      foreach($field as $fieldName => $condition) {
-        $this->_query->find($this->_getCondition($field, $condition));
-      }
-    }
-    else {
-      $this->_query->find($this->_getCondition($field, $condition, $_condition));
-    }
-    return $this;
-  }
-
-  /**
-   * Build query condition
-   *
-   * Filter by other collection value using the -> operator to separate the
-   * field that references the other collection and the field in the other collection.
-   * - ('bar_id->name', 'eq', 'Baz')
-   *
-   * If $condition is not array - exact value will be filtered
-   *
-   * If $condition is assoc array - one of the following structures is expected:
-   * - array("from"=>$fromValue, "to"=>$toValue)
-   * - array("eq|neq"=>$likeValue)
-   * - array("like|nlike"=>$likeValue)
-   * - array("null|notnull"=>TRUE)
-   * - array("is"=>"NULL|NOT NULL")
-   * - array("in|nin"=>$array)
-   * - array("$__"=>$value)
-   *
-   * If $condition is numerically indexed array then treated as $or conditions
+   * Build query condition. See docs for addFieldToFilter.
    *
    * @param string $fieldName
    * @param integer|string|array $condition
@@ -607,7 +523,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
           else {
             $from = new MongoDate(strtotime($condition['from'].' 00:00:00'));
           }
-          $query['$gte'] = $this->_castFieldValue($fieldName, $from);
+          $query['$gte'] = $this->castFieldValue($fieldName, $from);
         }
         if (isset($condition['to'])) {
           if (empty($condition['date'])) {
@@ -621,7 +537,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
           else {
             $to = new MongoDate(strtotime($condition['to'].' 00:00:00'));
           }
-          $query['$lte'] = $this->_castFieldValue($fieldName, $to);
+          $query['$lte'] = $this->castFieldValue($fieldName, $to);
         }
         $query = array($fieldName => $query);
       }
@@ -632,11 +548,11 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
         }
         // Search for an exact match
         else {
-          $query = array($fieldName => $this->_castFieldValue($fieldName, $condition['eq']));
+          $query = array($fieldName => $this->castFieldValue($fieldName, $condition['eq']));
         }
       }
       elseif (isset($condition['neq'])) {
-        $query = array($fieldName => array('$ne' => $this->_castFieldValue($fieldName, $condition['neq'])));
+        $query = array($fieldName => array('$ne' => $this->castFieldValue($fieldName, $condition['neq'])));
       }
       elseif (isset($condition['like'])) {
         $query = preg_quote($condition['like']);
@@ -679,14 +595,14 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       elseif (isset($condition['in'])) {
         $values = array();
         foreach($condition['in'] as $value) {
-          $values[] = $this->_castFieldValue($fieldName, $value);
+          $values[] = $this->castFieldValue($fieldName, $value);
         }
         $query = array($fieldName => array('$in' => $values));
       }
       elseif (isset($condition['nin'])) {
         $values = array();
         foreach($condition['nin'] as $value) {
-          $values[] = $this->_castFieldValue($fieldName, $value);
+          $values[] = $this->castFieldValue($fieldName, $value);
         }
         $query = array($fieldName => array('$nin' => $values));
       }
@@ -710,28 +626,59 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
-   * Cast values to the proper type before running query
-   * 
+   * Add sort order to the end or to the beginning
+   *
    * @param string $field
-   * @param mixed $value
-   * @return mixed
+   * @param string $direction
+   * @param bool $unshift
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
-  protected function _castFieldValue($field, $value)
+  protected function _setOrder($field, $direction, $unshift = false)
   {
-    return $this->getResource()->castToMongo($field, $value);
+    $direction = (strtoupper($direction) == self::SORT_ORDER_ASC) ? Mongo_Collection::ASC : Mongo_Collection::DESC;
+
+    // emulate associative unshift
+    if ($unshift) {
+      $orders = array($field => $direction);
+      foreach ((array)$this->_query->get_option('sort') as $key => $_direction) {
+        if (!isset($orders[$key])) {
+          $orders[$key] = $_direction;
+        }
+      }
+      $this->_query->set_option('sort', $orders);
+    }
+    else {
+      $this->_query->sort($field, $direction);
+    }
+    return $this;
   }
 
   /**
-   * Save all the entities in the collection
-   *
-   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   * Apply the limit and skip based on paging variables
    */
-  public function save()
+  protected function _renderLimit()
   {
-    foreach ($this->getItems() as $item) {
-      $item->save();
+    if($this->_pageSize){
+      if($this->getCurPage() > 1) {
+        $this->_query->skip(($this->getCurPage()-1) * $this->_pageSize);
+      }
+      $this->_query->limit($this->_pageSize);
     }
     return $this;
+  }
+
+  /**
+   * Make sure that preloaded fields are included in query
+   */
+  protected function _renderFields()
+  {
+    $fields = $this->_query->get_option('fields');
+    if($fields && array_sum($fields)) {
+      foreach($this->_preloadFields as $field => $true) {
+        $fields[$field] = 1;
+      }
+      $this->_query->set_option('fields', $fields);
+    }
   }
 
 }

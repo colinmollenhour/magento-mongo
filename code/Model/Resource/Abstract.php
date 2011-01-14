@@ -1,6 +1,7 @@
 <?php
 
-abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource_Abstract {
+abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource_Abstract
+{
 
   /** @var string  The resource group in the schema */
   protected $_resourceModel;
@@ -273,7 +274,8 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     }
 
     if ( ! is_null($value)) {
-      $data = $this->_getDocument($object, $field, $value);
+      $fields = $this->getDefaultLoadFields($object);
+      $data = $this->getDocument($field, $value, $fields);
       if ($data) {
         $this->hydrate($object, $data, TRUE);
       } else {
@@ -285,18 +287,30 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
 
     return $this;
   }
-  
+
+  /**
+   * Overload to choose only specific fields to be loaded.
+   *
+   * @param Varien_Object $object
+   * @return array
+   */
+  public function getDefaultLoadFields($object)
+  {
+    return array(); // all fields
+  }
+
   /**
    * Get the document for a load.
-   * 
+   *
    * @param string $field
    * @param mixed $value
+   * @param array $fields
    * @return type 
    */
-  protected function _getDocument(Cm_Mongo_Model_Abstract $object, $field, $value)
+  public function getDocument($field, $value, $fields = array())
   {
     $value = $this->castToMongo($field, $value);
-    return $this->_getReadCollection()->findOne(array($field => $value));
+    return $this->_getReadCollection()->findOne(array($field => $value), $fields);
   }
 
   /**

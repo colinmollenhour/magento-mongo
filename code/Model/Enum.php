@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * General purpose storage for a set of key => value pairs.
+ */
 class Cm_Mongo_Model_Enum
   extends Cm_Mongo_Model_Abstract
   implements Mage_Eav_Model_Entity_Attribute_Source_Interface

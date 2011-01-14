@@ -1,6 +1,8 @@
 <?php
 /**
  * Piggyback EAV but use Mongo for storage
+ *
+ * NOT COMPLETE AND NOT WORKING 
  */
 abstract class Cm_Mongo_Model_Entity
     extends Mage_Eav_Model_Entity_Abstract

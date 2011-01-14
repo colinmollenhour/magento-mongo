@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * Common data type conversion from PHP values to Mongo values
+ */
 class Cm_Mongo_Model_Type_Tomongo
 {
 
