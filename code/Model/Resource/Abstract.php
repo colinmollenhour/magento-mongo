@@ -614,7 +614,8 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   public function castToMongo($field, $value)
   {
     $mapping = $this->getFieldMapping($field);
-    return $this->getPhpToMongoConverter()->{"$mapping->type"}($mapping, $value);
+    $type = isset($mapping->type) ? "$mapping->type" : 'string';
+    return $this->getPhpToMongoConverter()->$type($mapping, $value);
   }
 
   /**
