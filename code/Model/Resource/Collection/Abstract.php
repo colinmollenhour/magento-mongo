@@ -22,6 +22,14 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   /** Storage for the raw data
    * @var array */
   protected $_data;
+
+  /** List of fields to be preloaded after load
+   * @var array */
+  protected $_preloadFields = array();
+
+  /** References to collections that have been preloaded
+   * @var array */
+  protected $_referencedCollections = array();
   
   public function __construct($resource = NULL)
   {
@@ -31,6 +39,9 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     $this->setConnection($this->getResource()->getReadConnection());
   }
   
+  /**
+   * Overload to perform initialization
+   */
   public function _construct()
   {
   }
@@ -52,37 +63,58 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
-   * Preload referenced objects for the current (loaded) query.
-   * 
-   * Returns the referenced collection so that additional filters/parameters may be set.
+   * Adds a field to be preloaded after the collection is loaded.
+   * If the collection is already loaded it will preload the referenced
+   * collection immediately.
    *
    * @param string|array $field
-   * @param string $collectionName
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
-  public function preloadReferences($field, $collectionName = null)
+  public function addFieldToPreload($field)
   {
-    // Handle arrays as multiple calls to preload
     if(is_array($field)) {
-      foreach($field as $key => $value) {
-        $this->preloadReferences($key, $value);
+      foreach($field as $_field) {
+        $this->_preloadFields[$field] = TRUE;
       }
-      return $this;
+    }
+    else if(empty($this->_preloadFields[$field])) {
+      $this->_preloadFields[$field] = TRUE;
     }
 
-    // Get all ids for the given field
-    $ids = array();
-    foreach($this->getItems() as $id => $item) {
-      if($ref = $item->getData($field)) {
-        $ids[] = $ref;
-      }
+    if($this->isLoaded()) {
+      $this->_loadReferences();
     }
+
+    return $this;
+  }
+
+  /**
+   * Get referenced objects for the current query. Triggers a load if not already loaded.
+   * 
+   * Returns the referenced collection unloaded so that additional filters/parameters may be set.
+   *
+   * @param string $field
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   */
+  public function getReferencedCollection($field)
+  {
+    if(empty($this->_referencedCollections[$field]))
+    {
+      // Get all ids for the given field
+      $ids = array();
+      foreach($this->getItems() as $id => $item) {
+        if($ref = $item->getData($field)) {
+          $ids[] = $ref;
+        }
+      }
     
-    // Load the referenced objects using $in and cache them in the appropriate resource
-    $collection = Mage::getResourceModel($collectionName)->addFieldToFilter('_id', '$in', $ids);
-    Mage::getResourceSingleton($this->getResource()->getFieldModelName($field))->addCollectionToCache($collection);
-
-    return $collection;
+      // Load the referenced objects using $in and cache them in the appropriate resource
+      $modelName = $this->getResource()->getFieldModelName($field);
+      $collection = Mage::getSingleton($modelName)->getCollection();
+      $collection->addFieldToFilter('_id', '$in', $ids);
+      $this->_referencedCollections[$field] = $collection;
+    }
+    return $this->_referencedCollections[$field];
   }
 
   /**
@@ -373,6 +405,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       }
     }
 
+    $this->_loadReferences();
     $this->_setIsLoaded();
     $this->_afterLoad();
     return $this;
@@ -390,7 +423,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       $this->_renderFilters()
            ->_renderOrders()
            ->_renderLimit();
-      $this->_data = $this->_query->as_array(TRUE);
+      $this->_data = $this->_query->as_array(FALSE);
       $this->_afterLoadData();
     }
     return $this->_data;
@@ -428,6 +461,26 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     $this->_setIsLoaded(false);
     $this->_items = array();
     $this->_data = null;
+    $this->_preloadFields = array();
+    $this->_referencedCollections = array();
+    return $this;
+  }
+
+  /**
+   * Load references
+   *
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   */
+  protected function _loadReferences()
+  {
+    foreach($this->_preloadFields as $field => $true) {
+      if(isset($this->_referencedCollections[$field])) {
+        continue;
+      }
+      $collection = $this->getReferencedCollection($field);
+      $modelName = $this->getResource()->getFieldModelName($field);
+      Mage::getResourceSingleton($modelName)->addCollectionToCache($collection);
+    }
     return $this;
   }
 
@@ -510,7 +563,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     if(strpos($fieldName, '->')) {
       list($reference,$referenceField) = explode('->', $fieldName);
       //$this->getResource()->getFieldModelName($reference)
-      $collection = $this->getResource()->getFieldModel($reference)->getCollection();
+      $collection = Mage::getSingleton($this->getResource()->getFieldModelName($reference))->getCollection();
       $collection->addFieldToFilter($referenceField, $condition, $_condition);
       $query = array($reference => array('$in' => $collection->getAllIds(TRUE)));
     }
