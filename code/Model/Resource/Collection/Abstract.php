@@ -354,8 +354,8 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       }
     }
 
-    $this->_loadReferences();
     $this->_setIsLoaded();
+    $this->_loadReferences();
     $this->_afterLoad();
     return $this;
   }
