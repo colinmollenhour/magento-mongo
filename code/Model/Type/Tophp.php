@@ -85,7 +85,12 @@ class Cm_Mongo_Model_Type_Tophp
     }
     return NULL;
   }
-  
+
+  public function datestring($mapping, $value)
+  {
+    return (string) $value;
+  }
+
   public function set($mapping, $value)
   {
     $value = array_values((array) $value);

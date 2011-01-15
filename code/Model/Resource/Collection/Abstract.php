@@ -175,7 +175,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       $ids = array();
 
       // Get all ids for the given field
-      $fieldType = (string) $this->getResource()->getFieldMapping($field)->type;
+      $fieldType = (string) $this->getResource()->getFieldType($field);
       if($fieldType == 'reference') {
         foreach($this->getItems() as $item) {
           if($ref = $item->getData($field)) {
@@ -545,7 +545,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       }
       elseif (isset($condition['eq'])) {
         // Search array for presence of a single value
-        if( ! is_array($condition['eq']) && $this->getResource()->getFieldMapping($fieldName)->type == 'set') {
+        if( ! is_array($condition['eq']) && $this->getResource()->getFieldType($fieldName) == 'set') {
           $query = array($fieldName => $condition['eq']);
         }
         // Search for an exact match

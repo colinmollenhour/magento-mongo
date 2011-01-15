@@ -185,7 +185,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    * Get the field mapping data for the given field name.
    *
    * @param string $field
-   * @return string
+   * @return Varien_Simplexml_Element
    */
   public function getFieldMapping($field)
   {
@@ -194,6 +194,18 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       throw new Exception("$this->_resourceModel/$this->_entityName does not have a field named $field.");
     }
     return $mapping;
+  }
+
+  /**
+   * Get the field type
+   *
+   * @param string $field
+   * @return string
+   */
+  public function getFieldType($field)
+  {
+    $mapping = $this->getFieldMapping($field);
+    return isset($mapping->type) ? (string) $mapping->type : 'string';
   }
 
   /**
@@ -628,7 +640,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   public function castToMongo($field, $value)
   {
     $mapping = $this->getFieldMapping($field);
-    $type = isset($mapping->type) ? "$mapping->type" : 'string';
+    $type = $this->getFieldType($field);
     return $this->getPhpToMongoConverter()->$type($mapping, $value);
   }
 

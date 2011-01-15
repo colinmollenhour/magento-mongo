@@ -382,6 +382,37 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
       unset($this->_children);
     }
   }
+
+  /**
+   * Get the specified field as a Zend_Date
+   *
+   * @param string $field
+   * @param boolean $useTimezone
+   * @return Zend_Date
+   */
+  public function getAsZendDate($field, $useTimezone = true)
+  {
+    $type = $this->getResource()->getFieldType($field);
+    $data = $this->getData($field);
+    if( ! $data) {
+      return NULL;
+    }
+
+    switch($type)
+    {
+      case 'MongoDate':
+        return Mage::app()->getLocale()->date($data->sec, null, null, $useTimezone);
+
+      case 'datestring':
+        return Mage::app()->getLocale()->date($data, Varien_Date::DATE_INTERNAL_FORMAT, null, false);
+
+      case 'timestamp':
+      case 'int':
+      case 'float':
+      default:
+        return Mage::app()->getLocale()->date($data, null, null, $useTimezone);
+    }
+  }
   
   /**
    * Overridden to not set an object as new when there is no id to support upserts.

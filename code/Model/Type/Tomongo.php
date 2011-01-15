@@ -86,6 +86,24 @@ class Cm_Mongo_Model_Type_Tomongo
     return NULL;
   }
 
+  public function datestring($mapping, $value)
+  {
+    if($value instanceof Zend_Date) {
+      return $value->toString(Varien_Date::DATE_INTERNAL_FORMAT);
+    }
+    else if(is_int($value)) {
+      $date = new Zend_Date($value);
+      return $value->toString(Varien_Date::DATE_INTERNAL_FORMAT);
+    }
+    else if($value instanceof MongoDate) {
+      $date = new Zend_Date($value->sec);
+      return $value->toString(Varien_Date::DATE_INTERNAL_FORMAT);
+    }
+    else {
+      return (string) $value;
+    }
+  }
+
   public function set($mapping, $value)
   {
     $value = array_values((array) $value);
