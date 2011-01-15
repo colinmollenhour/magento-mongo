@@ -645,6 +645,26 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   }
 
   /**
+   * Require that the current value for the object for the given field be unique.
+   *
+   * @param Cm_Mongo_Model_Abstract $object
+   * @param string $field
+   * @throws Mage_Core_Exception if value is not unique
+   */
+  public function requireUniqueValue(Cm_Mongo_Model_Abstract $object, $field)
+  {
+    $value = $object->getData($field);
+    $query = array($field => $value);
+    if($object->getId()) {
+      $query['_id'] = array('$ne' => $object->getId());
+    }
+    $result = $this->_getReadCollection()->findOne($query);
+    if($result) {
+      throw new Mage_Core_Exception('Duplicate value for field '.$field);
+    }
+  }
+
+  /**
    * Flatten a nested array of values to update into . delimited keys
    * 
    * @param array $data
