@@ -334,7 +334,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   public function save(Mage_Core_Model_Abstract $object)
   {
     if ($object->isDeleted()) {
-      return $this->delete($object);
+      return $object->delete();
     }
 
     $this->_beforeSave($object);
