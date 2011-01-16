@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema>
   <mongo>
+
+    <!-- General-purpose enumeration storage -->
     <enum>
       <collection>enums</collection>
       <fields>
@@ -10,6 +12,27 @@
         <stores>         <type>hash</type></stores>
       </fields>
     </enum>
+
+    <!-- General-purpose job queue -->
+    <job>
+      <collection>job_queue</collection>
+      <autoincrement/>
+      <created_timestamp/>
+      <updated_timestamp/>
+      <fields>
+        <_id>            <type>int</type></_id>
+        <task/>
+        <job_data>       <type>hash</type></job_data>
+        <status/>
+        <status_message/>
+        <pid>            <type>int</type></pid>
+        <retries>        <type>int</type></retries>
+        <priority>       <type>int</type></priority>
+        <execute_at>     <type>int</type></execute_at>
+        <error_log>      <type>set</type></error_log>
+        <other_data>     <type>hash</type></other_data>
+      </fields>
+    </job>
   </mongo>
   
   <!-- Sample Schema -->

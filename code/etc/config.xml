@@ -112,4 +112,23 @@
     </layout>
   </frontend>
 
+  <crontab>
+    <jobs>
+      <mongo_queue>
+        <!--<schedule><cron_expr>*/4 * * * *</cron_expr></schedule>-->
+        <run><model>mongo/job::runCron</model></run>
+      </mongo_queue>
+    </jobs>
+  </crontab>
+
+  <default>
+    <system>
+      <mongo_queue>
+        <enabled>0</enabled>
+        <limit>50</limit>
+        <time>10</time>
+      </mongo_queue>
+    </system>
+  </default>
+
 </config>
