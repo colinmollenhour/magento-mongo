@@ -274,6 +274,8 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Load an object
    *
+   * If $value is an array it is treated as a field => value query
+   *
    * @param   Mage_Core_Model_Abstract $object
    * @param   mixed $value
    * @param   string $field field to load by (defaults to model id)
@@ -281,13 +283,17 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    */
   public function load(Mage_Core_Model_Abstract $object, $value, $field=null)
   {
-    if (is_null($field)) {
-      $field = $this->getIdFieldName();
+    if(is_array($value) && is_null($field)) {
+      $query = $value;
+    } else if(is_null($field)) {
+      $query = array($this->getIdFieldName() => $value);
+    } else {
+      $query = array($field => $value);
     }
 
     if ( ! is_null($value)) {
       $fields = $this->getDefaultLoadFields($object);
-      $data = $this->getDocument($field, $value, $fields);
+      $data = $this->getDocument($query, $fields);
       if ($data) {
         $this->hydrate($object, $data, TRUE);
       } else {
@@ -314,15 +320,18 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Get the document for a load.
    *
-   * @param string $field
-   * @param mixed $value
+   * @param array $query
    * @param array $fields
    * @return type 
    */
-  public function getDocument($field, $value, $fields = array())
+  public function getDocument($query, $fields = array())
   {
-    $value = $this->castToMongo($field, $value);
-    return $this->_getReadCollection()->findOne(array($field => $value), $fields);
+    foreach($query as $field => $value) {
+      if($field{0} != '$' && ! is_array($value)) {
+        $query[$field] = $this->castToMongo($field, $value);
+      }
+    }
+    return $this->_getReadCollection()->findOne($query, $fields);
   }
 
   /**
