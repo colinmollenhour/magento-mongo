@@ -7,7 +7,6 @@ class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
   const STATUS_RUNNING   = 'running';
   const STATUS_INVALID   = 'invalid';
   const STATUS_DISABLED  = 'disabled';
-  const STATUS_HOLD      = 'hold';
   const STATUS_SUCCESS   = 'success';
   const STATUS_FAILED    = 'failed';
 
