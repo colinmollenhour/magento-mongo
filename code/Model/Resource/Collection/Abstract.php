@@ -64,6 +64,46 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
+   * Add aggregate data, such as from a group operation.
+   *
+   * $keys is in the form of:
+   * '_id' => 'ref_id'  (index in this collection, index in aggregate data)
+   *
+   * @param array $keys
+   * @param array $data
+   * @param array $defaults   Optionally specify default values for missing data
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   */
+  public function addAggregateData($keys, &$data, $defaults = array())
+  {
+    // Multi-key join
+    if(count($keys) > 1) {
+      // todo, support adding aggregate data by multiple keys
+    }
+
+    // Single-key join
+    else {
+      $field = key($keys);
+      $joinField = $keys[$field];
+      $index = array();
+      foreach($data as &$doc) {
+        $key = $doc[$joinField];
+        unset($doc[$joinField]);
+        $index[$key] = $doc;
+      }
+      foreach($this->getItems() as $item) {
+        $id = $item->getData($field);
+        if(isset($index[$id])) {
+          $item->addData($index[$id]);
+        } else if($defaults) {
+          $item->addData($defaults);
+        }
+      }
+    }
+    return $this;
+  }
+
+  /**
    * Add field filter to collection.
    *
    * If $field is an array then each key => value is applied as a separate condition.
