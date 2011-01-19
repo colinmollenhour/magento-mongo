@@ -44,7 +44,7 @@ class Cm_Mongo_Block_Adminhtml_Widget_Grid_Column_Renderer_Datestring extends Ma
    */
   public function render(Varien_Object $row)
   {
-    if ($data = $row->getData($this->getColumn()->getIndex())) {
+    if ($data = $this->_getValue($row)) {
       $format = $this->_getFormat();
       $data = Mage::app()->getLocale()->date($data, Varien_Date::DATE_INTERNAL_FORMAT, NULL, FALSE)->toString($format);
       return $data;

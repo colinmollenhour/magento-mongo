@@ -155,7 +155,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   {
     if(is_array($field)) {
       foreach($field as $_field) {
-        $this->_preloadFields[$field] = TRUE;
+        $this->_preloadFields[$_field] = TRUE;
       }
     }
     else {
