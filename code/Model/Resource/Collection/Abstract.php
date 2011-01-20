@@ -108,11 +108,13 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    *
    * If $field is an array then each key => value is applied as a separate condition.
    *
+   * If $field is '$or' or '$nor', each $condition is processed as part of the or/nor query.
+   *
    * Filter by other collection value using the -> operator to separate the
    * field that references the other collection and the field in the other collection.
    * - ('bar_id->name', 'eq', 'Baz')
    *
-   * If $condition is not array - exact value will be filtered
+   * If $_condition is not null and $condition is not an array, value will not be cast.
    *
    * If $condition is assoc array - one of the following structures is expected:
    * - array("from"=>$fromValue, "to"=>$toValue)
@@ -121,9 +123,8 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    * - array("null|notnull"=>TRUE)
    * - array("is"=>"NULL|NOT NULL")
    * - array("in|nin"=>$array)
+   * - array("raw"=>$mixed) - No typecasting
    * - array("$__"=>$value) - Any mongo operator
-   *
-   * If $condition is a numerically indexed array then it is treated as $or conditions
    *
    * @param string $field
    * @param null|string|array $condition
@@ -132,14 +133,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    */
   public function addFieldToFilter($field, $condition=null, $_condition=null)
   {
-    if (is_array($field)) {
-      foreach($field as $fieldName => $condition) {
-        $this->_query->find($this->_getCondition($field, $condition));
-      }
-    }
-    else {
-      $this->_query->find($this->_getCondition($field, $condition, $_condition));
-    }
+    $this->_query->find($this->_getCondition($field, $condition, $_condition));
     return $this;
   }
 
@@ -197,7 +191,27 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    */
   public function castFieldValue($field, $value)
   {
-    return $this->getResource()->castToMongo($field, $value);
+    try {
+      $resource = $this->getResource();
+      if(strpos($field, '.')) {
+        $parts = explode('.', $field);
+        $field = array_pop($parts);
+        while($_field = array_shift($parts)) {
+          if(isset($resource->getFieldMapping($_field)->subtype)) {
+            if( ! count($parts)) {
+              $subtype = (string) $resource->getFieldMapping($_field)->subtype;
+              return $resource->getPhpToMongoConverter()->$subtype((object)null, $value);
+            }
+            return $value;
+          }
+          $resource = $resource->getFieldResource($_field);
+        }
+      }
+      return $resource->castToMongo($field, $value);
+    }
+    catch(Exception $e) {
+      return $value;
+    }
   }
 
   /**
@@ -531,12 +545,21 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    *
    * @param string $fieldName
    * @param integer|string|array $condition
+   * @param mixed $_condition
    * @return array
    */
-  protected function _getCondition($fieldName, $condition, $_condition)
+  protected function _getCondition($fieldName, $condition = NULL, $_condition = NULL)
   {
+    // If $fieldName is an array it is assumed to be multiple queries as $fieldName => $condition
+    if(is_array($fieldName)) {
+      $query = array();
+      foreach($fieldName as $_fieldName => $_condition) {
+        $query = array_merge($query, $this->_getCondition($_fieldName, $_condition));
+      }
+    }
+
     // Handle cross-collection filters with field names like bar_id:name
-    if(strpos($fieldName, '->')) {
+    else if(strpos($fieldName, '->')) {
       list($reference,$referenceField) = explode('->', $fieldName);
       //$this->getResource()->getFieldModelName($reference)
       $collection = Mage::getSingleton($this->getResource()->getFieldModelName($reference))->getCollection();
@@ -544,14 +567,30 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       $query = array($reference => array('$in' => $collection->getAllIds(TRUE)));
     }
 
-    // When using third argument, no type casting is performed
+    // When using third argument, convert to two arguments
     else if ( $_condition !== NULL) {
-      $query = array($fieldName => array($condition => $_condition));
+      $query = $this->_getCondition($fieldName, array($condition => $_condition));
+    }
+
+    // Process sub-queries of or and nor
+    elseif ($fieldName == '$or' || $fieldName == '$nor') {
+      $query = array();
+      foreach($condition as $_fieldName => $_condition) {
+        $query = array_merge($query, $this->_getCondition($_fieldName, $_condition));
+      }
+      $query = array($fieldName => $query);
     }
 
     // Process special condition keys
     else if (is_array($condition)) {
-      if (isset($condition['from']) || isset($condition['to'])) {
+
+      // If condition key is an operator, make no changes
+      if (count($condition) == 1 && substr(key($condition),0,1) == '$') {
+        $query = $condition;
+      }
+
+      // Range queries
+      elseif (isset($condition['from']) || isset($condition['to'])) {
         $query = array();
         if (isset($condition['from'])) {
           if (empty($condition['date'])) {
@@ -583,6 +622,18 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
         }
         $query = array($fieldName => $query);
       }
+
+      // Multiple conditions
+      elseif (count($condition) > 1) {
+        $query = array();
+        foreach($condition as $_condition => $value) {
+          $_condition = $this->_getCondition($fieldName, array($_condition => $value));
+          $query = array_merge($query, $_condition[$fieldName]);
+        }
+        $query = array($fieldName => $query);
+      }
+
+      // Equality
       elseif (isset($condition['eq'])) {
         // Search array for presence of a single value
         if( ! is_array($condition['eq']) && $this->getResource()->getFieldType($fieldName) == 'set') {
@@ -594,8 +645,17 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
         }
       }
       elseif (isset($condition['neq'])) {
-        $query = array($fieldName => array('$ne' => $this->castFieldValue($fieldName, $condition['neq'])));
+        // Search array for presence of a single value
+        if( ! is_array($condition['neq']) && $this->getResource()->getFieldType($fieldName) == 'set') {
+          $query = array($fieldName => $condition['neq']);
+        }
+        // Search for an exact match
+        else {
+          $query = array($fieldName => $this->castFieldValue($fieldName, $condition['neq']));
+        }
       }
+
+      // Like (convert SQL like to regex)
       elseif (isset($condition['like'])) {
         $query = preg_quote($condition['like']);
         $query = str_replace('\_', '_', $query); // unescape SQL syntax
@@ -620,6 +680,8 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
         $query = trim($query,'%');
         $query = array($fieldName => array('$not' => new MongoRegex('/'.str_replace('%','.*',$query).'/i')));
       }
+
+      // Test null by type
       elseif (isset($condition['notnull'])) {
         $query = array($fieldName => array('$not' => array('$type' => Mongo_Database::TYPE_NULL)));
       }
@@ -634,6 +696,8 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
           $query = array($fieldName => array('$not' => array('$type' => Mongo_Database::TYPE_NULL)));
         }
       }
+
+      // Array queries
       elseif (isset($condition['in'])) {
         $values = array();
         foreach($condition['in'] as $value) {
@@ -648,22 +712,23 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
         }
         $query = array($fieldName => array('$nin' => $values));
       }
-      elseif (isset($condition[0])) {
-        $query = array();
-        foreach ($condition as $orCondition) {
-          $query[] = $this->_getCondition($fieldName, $orCondition);
-        }
-        $query = array('$or' => $query);
-      }
-      else {
+
+      // Bypass typecasting
+      elseif (isset($condition['raw'])) {
         $query = array($fieldName => $condition);
+      }
+
+      // Assume an "equals" query
+      else {
+        $query = $this->_getCondition($fieldName, 'eq', $condition);
       }
     }
 
     // Condition is scalar
     else {
-      $query = array($fieldName => $condition);
+      $query = $this->_getCondition($fieldName, 'eq', $condition);
     }
+
     return $query;
   }
 
