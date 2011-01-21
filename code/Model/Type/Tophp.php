@@ -93,7 +93,12 @@ class Cm_Mongo_Model_Type_Tophp
 
   public function set($mapping, $value)
   {
-    $value = array_values((array) $value);
+    if(is_string($value) && isset($mapping->split)) {
+      $regex = ($mapping->split = 'newline' ? '/[ \t]*[\r\n]+[ \t]*/' : (string) $mapping->split);
+      $value = preg_split($regex, trim($value), null, PREG_SPLIT_NO_EMPTY);
+    } else if( ! is_array($value) || key($value) != 0) {
+      $value = array_values((array) $value);
+    }
     if($mapping->subtype) {
       $subtype = (string) $mapping->subtype;
       foreach($value as &$val) {
