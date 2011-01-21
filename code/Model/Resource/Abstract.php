@@ -18,6 +18,9 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /** @var Mongo_Collection */
   protected $_writeCollection;
 
+  /** @var array  Cache repository */
+  protected $_caches = array();
+
   /**
    * Standard resource model initialization
    *
@@ -301,8 +304,6 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       }
     }
 
-    $this->_afterLoad($object);
-
     return $this;
   }
 
@@ -537,6 +538,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     if($original) {
       $object->isObjectNew(FALSE);
       $object->setOrigData();
+      $this->_afterLoad($object);
     }
   }
   

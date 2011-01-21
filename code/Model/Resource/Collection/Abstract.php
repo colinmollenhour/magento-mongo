@@ -398,14 +398,9 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     }
 
     if (is_array($documents)) {
-      $idFieldName = $this->getIdFieldName();
       foreach ($documents as $data) {
         $item = $this->getNewEmptyItem();
-        if ($idFieldName) {
-          $item->setIdFieldName($idFieldName);
-        }
-        $this->getResource()->hydrate($item, $data);
-        $item->setOrigData();
+        $this->getResource()->hydrate($item, $data, TRUE);
         $this->addItem($item);
       }
     }
