@@ -581,7 +581,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
 
       // If condition key is an operator, make no changes
       if (count($condition) == 1 && substr(key($condition),0,1) == '$') {
-        $query = $condition;
+        $query = array($fieldName => $condition);
       }
 
       // Range queries
