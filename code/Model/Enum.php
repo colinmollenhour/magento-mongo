@@ -24,6 +24,11 @@ class Cm_Mongo_Model_Enum
     return (array) $this->getDefaults();
   }
 
+  public function getValuesCount()
+  {
+    return count($this->getValues());
+  }
+
   public function toOptionArray($first = NULL)
   {
     $options = $this->getAllOptions();

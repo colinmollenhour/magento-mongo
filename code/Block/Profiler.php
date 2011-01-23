@@ -14,10 +14,11 @@ class Cm_Mongo_Block_Profiler extends Mage_Core_Block_Abstract
     $timers = Cm_Mongo_Profiler::getTimers();
 
     ob_start();
-    echo "<a href=\"javascript:void(0)\" onclick=\"$('profiler_section').style.display=$('profiler_section').style.display==''?'none':''\">[mongo profiler]</a>";
-    echo '<div id="mongo_profiler_section" style="background:white; display:block">';
-    echo '<table border="1" cellspacing="0" cellpadding="2" style="width:auto">';
-    echo '<tr><th>Mongo Profiler</th><th>Time</th><th>Cnt</th></tr>';
+    echo '<div style="background:white; text-align: left;">';
+    echo '<style>#mongo_profiler td { padding: 1px 3px; } #mongo_profiler th { padding: 3px; font-size: 120%; text-align: center; } </style>';
+    echo "<a href=\"#\" onclick=\"$('mongo_profiler').toggle(); return false;\">[mongo profiler]</a>";
+    echo '<table id="mongo_profiler" border="1" cellpadding="2" style="width:auto; border-collapse: collapse; margin: 1em;">';
+    echo '<tr><th>Query</th><th>Time</th><th>Count</th></tr>';
     foreach ($timers as $name=>$timer) {
       $sum = Cm_Mongo_Profiler::fetch($name,'sum');
       $count = Cm_Mongo_Profiler::fetch($name,'count');

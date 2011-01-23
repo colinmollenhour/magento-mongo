@@ -18,18 +18,25 @@ class Cm_Mongo_Block_Adminhtml_Enum_Grid extends Mage_Adminhtml_Block_Widget_Gri
   
   public function _prepareColumns()
   {
-    $this->addColumn('_id', array(
-      'header'         => $this->__('ID'),
-      'width'          => '100px',
-      'index'          => '_id',
-    ));
-    
     $this->addColumn('name', array(
       'header'         => $this->__('Name'),
-      'width'          => '100px',
       'index'          => 'name',
     ));
     
+    $this->addColumn('_id', array(
+      'header'         => $this->__('ID'),
+      'index'          => '_id',
+    ));
+
+    $this->addColumn('values_count', array(
+      'header'         => $this->__('Values'),
+      'getter'         => Cm_Mongo_Getter::factory('getValuesCount'),
+      'width'          => '100px',
+      'align'          => 'right',
+      'sortable'       => false,
+      'filter'         => false,
+    ));
+
     parent::_prepareColumns();
   }
   
