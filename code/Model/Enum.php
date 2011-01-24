@@ -68,7 +68,7 @@ class Cm_Mongo_Model_Enum
     if( ! isset($values[$value])) {
       return FALSE;
     }
-    return $values[$value];
+    return $values[$value]['label'];
   }
   
 }
