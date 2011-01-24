@@ -32,6 +32,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     $this->_resourceModel = $resource[0];
     $this->_entityName = $resource[1];
     $this->_collectionName = $this->getSchema()->getCollectionName($this->_resourceModel, $this->_entityName);
+    $this->_caches[] = new Varien_Data_Collection();
   }
 
   /**
@@ -746,6 +747,32 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   }
 
   /**
+   * Add an object to the object cache
+   *
+   * @param Cm_Mongo_Model_Abstract $object
+   */
+  public function addObjectToCache(Cm_Mongo_Model_Abstract $object)
+  {
+    $this->_caches[0]->addItem($object);
+  }
+
+  /**
+   * Remove an object from the cache
+   *
+   * @param Cm_Mongo_Model_Abstract $object
+   */
+  public function removeObjectFromCache(Cm_Mongo_Model_Abstract $object)
+  {
+    $id = $this->_getItemKey($object->getId());
+    if($id !== NULL) {
+      foreach($this->_caches as $collection)
+      {
+        $collection->removeItemByKey($id);
+      }
+    }
+  }
+
+  /**
    * Fetches an object from the resource's cache
    *
    * @param mixed $id
@@ -753,14 +780,29 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    */
   public function getCachedObject($id)
   {
+    $id = $this->_getItemKey($id);
     foreach($this->_caches as $collection)
     {
-      /* @var Cm_Mongo_Model_Resource_Collection_Abstract $collection */
+      /* @var Varien_Data_Collection $collection */
       if($item = $collection->getItemById($id)) {
         return $item;
       }
     }
     return NULL;
+  }
+
+  /**
+   * Get a key for an item
+   * 
+   * @param mixed $id
+   * @return mixed 
+   */
+  protected function _getItemKey($id)
+  {
+    if($id instanceof MongoId) {
+      return (string) $id;
+    }
+    return $id;
   }
 
 }

@@ -183,6 +183,57 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
+   * Adds the collection to the resource cache after the collection is loaded
+   *
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   */
+  public function addToCache()
+  {
+    if($this->isLoaded()) {
+      $this->getResource()->addCollectionToCache($this);
+    }
+    else {
+      $this->_addToCacheAfterLoad = TRUE;
+    }
+    return $this;
+  }
+
+  /**
+   * Adding item to item array. Overridden to ensure indexing on strings for safety with MongoId
+   *
+   * @param   Varien_Object $item
+   * @return  Varien_Data_Collection
+   */
+  public function addItem(Varien_Object $item)
+  {
+    $itemId = $this->_getItemKey($item->getId());
+
+    if ($itemId !== NULL) {
+      if (isset($this->_items[$itemId])) {
+        throw new Exception('Item ('.get_class($item).') with the same id "'.$item->getId().'" already exist');
+      }
+      $this->_items[$itemId] = $item;
+    } else {
+      $this->_items[] = $item;
+    }
+    return $this;
+  }
+
+  /**
+   * Get a key for an item
+   *
+   * @param mixed $id
+   * @return mixed
+   */
+  protected function _getItemKey($id)
+  {
+    if($id instanceof MongoId) {
+      return (string) $id;
+    }
+    return $id;
+  }
+
+  /**
    * Cast values to the proper type before running query
    *
    * @param string $field
@@ -470,6 +521,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     $this->_data = null;
     $this->_preloadFields = array();
     $this->_referencedCollections = array();
+    $this->getResource()->removeCollectionFromCache($this);
     return $this;
   }
 
@@ -484,6 +536,26 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       $item->save();
     }
     return $this;
+  }
+
+  /**
+   * Overridden to set correct id field name
+   *
+   * @return array
+   */
+  public function  toOptionArray()
+  {
+    return $this->_toOptionArray('_id', 'name');
+  }
+
+  /**
+   * Overridden to set correct id field name
+   *
+   * @return array
+   */
+  public function  toOptionHash()
+  {
+    return $this->_toOptionHash('_id', 'name');
   }
 
   /**
@@ -515,12 +587,9 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   {
     foreach($this->_preloadFields as $field => $true)
     {
-      if(isset($this->_referencedCollections[$field])) {
-        continue;
+      if( ! isset($this->_referencedCollections[$field])) {
+        $this->getReferencedCollection($field)->addToCache();
       }
-      $collection = $this->getReferencedCollection($field);
-      $modelName = $this->getResource()->getFieldModelName($field);
-      Mage::getResourceSingleton($modelName)->addCollectionToCache($collection);
     }
     return $this;
   }
@@ -532,6 +601,9 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    */
   protected function _afterLoad()
   {
+    if(isset($this->_addToCacheAfterLoad)) {
+      $this->addToCache();
+    }
     return $this;
   }
 
@@ -546,7 +618,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   protected function _getCondition($fieldName, $condition = NULL, $_condition = NULL)
   {
     // If $fieldName is an array it is assumed to be multiple queries as $fieldName => $condition
-    if(is_array($fieldName)) {
+    if (is_array($fieldName)) {
       $query = array();
       foreach($fieldName as $_fieldName => $_condition) {
         $query = array_merge($query, $this->_getCondition($_fieldName, $_condition));
@@ -554,9 +626,8 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     }
 
     // Handle cross-collection filters with field names like bar_id:name
-    else if(strpos($fieldName, '->')) {
-      list($reference,$referenceField) = explode('->', $fieldName);
-      //$this->getResource()->getFieldModelName($reference)
+    else if (strpos($fieldName, '->')) {
+      list($reference,$referenceField) = explode('->', $fieldName, 2);
       $collection = Mage::getSingleton($this->getResource()->getFieldModelName($reference))->getCollection();
       $collection->addFieldToFilter($referenceField, $condition, $_condition);
       $query = array($reference => array('$in' => $collection->getAllIds(TRUE)));

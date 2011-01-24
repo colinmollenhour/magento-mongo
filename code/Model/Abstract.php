@@ -19,6 +19,9 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
   protected $_path;
   protected $_operations;
 
+  /** @var boolean  If enabled, a load will add the item to cache */
+  protected $_isCacheEnabled = FALSE;
+
   /**
    * Get the resource instance. (overridden to improve IDE chaining)
    *
@@ -230,7 +233,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
       {
         $object = Mage::getResourceSingleton($modelName)->getCachedObject($refId);
         if( ! $object) {
-          $object = Mage::getModel($modelName)->load($refId);
+          $object = Mage::getModel($modelName)->isCacheEnabled(TRUE)->load($refId);
         }
       }
 
@@ -413,7 +416,33 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
         return Mage::app()->getLocale()->date($data, null, null, $useTimezone);
     }
   }
-  
+
+  /**
+   * Overridden to save the object in the cache if allowed
+   *
+   * @return Cm_Mongo_Model_Abstract
+   */
+  protected function _afterLoad()
+  {
+    if($this->isCacheEnabled()) {
+      $this->getResource()->addObjectToCache($this);
+    }
+    return parent::_afterLoad();
+  }
+
+  /**
+   * Overridden to save the object in the cache if allowed
+   *
+   * @return Cm_Mongo_Model_Abstract
+   */
+  protected function _afterDelete()
+  {
+    if($this->isCacheEnabled()) {
+      $this->getResource()->removeObjectFromCache($this);
+    }
+    return parent::_afterDelete();
+  }
+
   /**
    * Overridden to not set an object as new when there is no id to support upserts.
    * 
@@ -424,6 +453,21 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
     Mage::dispatchEvent('model_save_before', array('object'=>$this));
     Mage::dispatchEvent($this->_eventPrefix.'_save_before', $this->_getEventData());
     return $this;
+  }
+
+  /**
+   * Enable/disable the cache or get the current state
+   *
+   * @param boolean $value
+   * @return boolean|Cm_Mongo_Model_Abstract
+   */
+  public function isCacheEnabled($value = NULL)
+  {
+    if($value !== NULL) {
+      $this->_isCacheEnabled = $value;
+      return $this;
+    }
+    return $this->_isCacheEnabled;
   }
   
 }
