@@ -506,9 +506,10 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         elseif($type == 'embeddedSet') {
           if( ! $object->getData($field)) {
             $set = new Varien_Data_Collection;
+            $set->setItemObjectClass((string)$mapping->model);
             foreach($value as $itemData)
             {
-              $model = Mage::getModel((string)$mapping->model);
+              $model = $set->getNewEmptyItem();
               $model->getResource()->hydrate($model, $itemData, $original);
               $set->addItem($model);
             }
