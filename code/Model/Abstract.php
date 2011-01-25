@@ -415,6 +415,25 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
   }
   
   /**
+   * Initialize object original data
+   * Overridden so that it resets the state of hasDataChanges when called ithout arguments
+   *
+   * @param string $key
+   * @param mixed $data
+   * @return Varien_Object
+   */
+  public function setOrigData($key=null, $data=null)
+  {
+    if (is_null($key)) {
+      $this->_origData = $this->_data;
+      $this->_hasDataChanges = FALSE;
+    } else {
+      $this->_origData[$key] = $data;
+    }
+    return $this;
+  }
+
+  /**
    * When memory usage is important, use this to ensure there are no memory leaks.
    */
   public function reset()
