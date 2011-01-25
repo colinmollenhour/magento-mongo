@@ -505,15 +505,13 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         }
         elseif($type == 'embeddedSet') {
           if( ! $object->getData($field)) {
-            $set = new Varien_Data_Collection;
-            $set->setItemObjectClass((string)$mapping->model);
+            $set = $object->getDataUsingMethod($field);
             foreach($value as $itemData)
             {
               $model = $set->getNewEmptyItem();
               $model->getResource()->hydrate($model, $itemData, $original);
               $set->addItem($model);
             }
-            $object->setDataUsingMethod($field, $set);
           }
           else {
             $set = $object->getData($field);
@@ -561,11 +559,17 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         continue;
       }
 
-      if($forUpdate && ! $object->dataHasChangedFor($field) && ! $object->getData($field) instanceof Varien_Object) {
+      $rawValue = $object->getData($field);
+
+      // Skip fields that have not changed on updates
+      if(
+        $forUpdate &&
+        ! $object->dataHasChangedFor($field) &&
+        ! $rawValue instanceof Cm_Mongo_Model_Abstract &&
+        ! $rawValue instanceof Cm_Mongo_Model_Resource_Collection_Embedded
+      ) {
         continue;
       }
-      
-      $rawValue = $object->getData($field);
       
       if($rawValue === NULL && isset($mapping->required) && ! isset($mapping->required->null)) {
         $rawValue = (string) $mapping->required;
@@ -591,7 +595,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       else if($type == 'embeddedSet')
       {
         $value = array();
-        if($rawValue instanceof Varien_Data_Collection) {
+        if($rawValue instanceof Cm_Mongo_Model_Resource_Collection_Embedded) {
           $items = $rawValue->getItems();
         }
         else {
@@ -615,7 +619,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       
       // All other data types
       else {
-        $value = $converter->$type($mapping, $object->getData($field));
+        $value = $converter->$type($mapping, $rawValue);
       }
       
       $rawData[$field] = $value;
@@ -694,6 +698,9 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         $origData = $orig[$key];
         if($origData instanceof Cm_Mongo_Model_Abstract) {
           $origData = $origData->getOrigData();
+        }
+        else if($origData instanceof Cm_Mongo_Model_Resource_Collection_Embedded) {
+          $origData = $origData->walk('getOrigData');
         }
         $result2 = $this->_flattenUpdateData($origData, $value, $key.'.');
         foreach($result2 as $key2 => $value2) {

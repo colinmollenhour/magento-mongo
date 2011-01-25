@@ -178,7 +178,55 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
     $this->_children[] = $object;
     return $this;
   }
-  
+
+  /**
+   * Retrieve an embedded collection using the schema info by key
+   *
+   * @param string $field
+   * @return Cm_Mongo_Model_Resource_Collection_Embedded
+   */
+  protected function _getEmbeddedCollection($field)
+  {
+    if( ! $this->hasData($field) || $this->getData($field) === NULL) {
+      $collection = new Cm_Mongo_Model_Resource_Collection_Embedded;
+      $collection->setItemObjectClass($this->getResource()->getFieldModelName($field));
+      $this->_setEmbeddedCollection($field, $collection);
+    }
+    else if( ! $this->getData($field) instanceof Cm_Mongo_Model_Resource_Collection_Embedded) {
+      throw new Exception('Expected data to be an embedded collection.');
+    }
+    return $this->getData($field);
+  }
+
+  /**
+   * Set an embedded collection by key, used by embeddedSet type
+   *
+   * @param string $field
+   * @param Cm_Mongo_Model_Resource_Collection_Embedded $collection
+   * @return Cm_Mongo_Model_Abstract
+   */
+  protected function _setEmbeddedCollection($field, Cm_Mongo_Model_Resource_Collection_Embedded $collection)
+  {
+    // Setup proper nesting for future items added
+    $path = $this->getFieldPath($field);
+    $collection->_setEmbeddedIn($this, $path);
+
+    // Set proper nesting for existing items
+    $i = 0;
+    foreach($collection->getItems() as $item) {
+      $item->_setEmbeddedIn($this, $path.'.'.$i);
+      $i++;
+    }
+
+    // Set data and add collection to children for proper reset and hasDataChanges operation
+    $this->setData($field, $collection);
+    if( ! isset($this->_children)) {
+      $this->_children = array();
+    }
+    $this->_children[] = $collection;
+    return $this;
+  }
+
   /**
    * Set the parent object and the path relative to the parent.
    * 
