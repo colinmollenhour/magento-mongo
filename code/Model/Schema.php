@@ -18,7 +18,8 @@ class Cm_Mongo_Model_Schema extends Varien_Simplexml_Config
     parent::__construct($sourceData);
 
     if (Mage::app()->useCache(self::CACHE_KEY)) {
-      if ($this->_loadCache()) {
+      $this->setCache(Mage::app()->getCache());
+      if ($this->loadCache()) {
         return $this;
       }
     }
@@ -27,7 +28,7 @@ class Cm_Mongo_Model_Schema extends Varien_Simplexml_Config
     $this->setXml($config->getNode());
 
     if (Mage::app()->useCache(self::CACHE_KEY)) {
-      $this->_saveCache();
+      $this->saveCache();
     }
   }
 
@@ -79,16 +80,6 @@ class Cm_Mongo_Model_Schema extends Varien_Simplexml_Config
   public function getResourceSchema($resource)
   {
     return $this->getNode()->{$resource};
-  }
-
-  /**
-   * Retrieve cache object
-   *
-   * @return Zend_Cache_Frontend_File
-   */
-  public function getCache()
-  {
-    return Mage::app()->getCache();
   }
 
 }
