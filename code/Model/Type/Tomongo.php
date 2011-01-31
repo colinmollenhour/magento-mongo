@@ -88,7 +88,10 @@ class Cm_Mongo_Model_Type_Tomongo
 
   public function datestring($mapping, $value)
   {
-    if($value instanceof Zend_Date) {
+    if(is_string($value)) {
+      return $value;
+    }
+    else if($value instanceof Zend_Date) {
       return $value->toString(Varien_Date::DATE_INTERNAL_FORMAT);
     }
     else if(is_int($value)) {

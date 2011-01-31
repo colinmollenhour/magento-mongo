@@ -88,7 +88,23 @@ class Cm_Mongo_Model_Type_Tophp
 
   public function datestring($mapping, $value)
   {
-    return (string) $value;
+    if(is_string($value)) {
+      return $value;
+    }
+    else if($value instanceof Zend_Date) {
+      return $value->toString(Varien_Date::DATE_INTERNAL_FORMAT);
+    }
+    else if(is_int($value)) {
+      $date = new Zend_Date($value);
+      return $value->toString(Varien_Date::DATE_INTERNAL_FORMAT);
+    }
+    else if($value instanceof MongoDate) {
+      $date = new Zend_Date($value->sec);
+      return $date->toString(Varien_Date::DATE_INTERNAL_FORMAT);
+    }
+    else {
+      return (string) $value;
+    }
   }
 
   public function set($mapping, $value)
