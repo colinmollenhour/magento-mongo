@@ -175,7 +175,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
     if( ! isset($this->_children)) {
       $this->_children = array();
     }
-    $this->_children[] = $object;
+    $this->_children[$field] = $object;
     return $this;
   }
 
@@ -223,7 +223,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
     if( ! isset($this->_children)) {
       $this->_children = array();
     }
-    $this->_children[] = $collection;
+    $this->_children[$field] = $collection;
     return $this;
   }
 
@@ -242,7 +242,21 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
     $this->_path = $path.'.';
     return $this;
   }
-  
+
+  /**
+   * Unset an embedded object or collection
+   *
+   * @param string $field
+   */
+  protected function _unsetEmbeddedObject($field)
+  {
+    if($object = $this->getData($field)) {
+      unset($this->_children[$field]);
+      $object->reset();
+      $this->unsetData($field);
+    }
+  }
+
   /**
    * Get the root object (highest parent, or self if this is the parent object)
    * 
