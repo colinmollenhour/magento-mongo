@@ -32,9 +32,15 @@ class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
     if($this->getTaskConfig()->is('disabled')) {
       return true;
     }
-    // Check group config
-    $group = (string) $this->getTaskConfig('group');
-    return Mage::app()->getConfig()->getNode('mongo_queue/groups/'.$group)->is('disabled');
+    // Check group config if a group is specified
+    if($groups = (string) $this->getTaskConfig('groups')) {
+      foreach(explode(',',$groups) as $group) {
+        if(Mage::app()->getConfig()->getNode('mongo_queue/groups/'.$group)->is('disabled')) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**
@@ -133,9 +139,20 @@ class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
       return;
     }
 
-    // Load task model
-    $model = Mage::getSingleton((string)$this->getTaskConfig('model'));
-    if( ! $model) {
+    // Load task
+    switch((string) $this->getTaskConfig('type')) {
+      case 'helper':
+        $object = Mage::helper((string)$this->getTaskConfig('class'));
+        break;
+      case 'model':
+        $object = Mage::getModel((string)$this->getTaskConfig('class'));
+        break;
+      case 'singleton':
+      default:
+        $object = Mage::getSingleton((string)$this->getTaskConfig('class'));
+        break;
+    }
+    if( ! $object) {
       $this->updateStatus(self::STATUS_INVALID, 'Could not get task model.')
            ->save();
       return;
@@ -143,16 +160,31 @@ class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
 
     // Confirm existence of method
     $method = (string) $this->getTaskConfig('method');
-    if( ! method_exists($model, $method)) {
+    if( ! method_exists($object, $method)) {
       $this->updateStatus(self::STATUS_INVALID, 'Cannot call task method.')
            ->save();
       return;
     }
 
+    $data = new Varien_Object($this->getJobData());
+
     // Run task
     try {
-      $data = new Varien_Object($this->getJobData());
-      $model->$method($this, $data);
+
+      // Load object if a load_index is specified
+      if($type == 'model' && ($loadIndex = $this->getTaskConfig('load_index'))) {
+        if( ! $data->hasData($loadIndex)) {
+          throw new Exception('No id in job data to load by.');
+        }
+        $object->load($data->getData($loadIndex));
+        $data->unsetData($loadIndex);
+        if( ! $object->getId()) {
+          throw new Exception('Object could not be loaded.');
+        }
+      }
+
+      $data->setJob($this);
+      $object->$method($data);
       
       // If status not changed by task, assume success
       if($this->getStatus() == self::STATUS_RUNNING || $this->getStatus() == self::STATUS_SUCCESS) {

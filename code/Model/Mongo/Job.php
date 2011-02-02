@@ -9,7 +9,6 @@ class Cm_Mongo_Model_Mongo_Job extends Cm_Mongo_Model_Resource_Abstract
   }
 
   /**
-   *
    * @return Cm_Mongo_Model_Job or FALSE if no job in ready queue
    */
   public function getNextJob()
@@ -35,8 +34,38 @@ class Cm_Mongo_Model_Mongo_Job extends Cm_Mongo_Model_Resource_Abstract
     {
       $job = Mage::getModel('t3/job');
       $this->hydrate($job, $data, TRUE);
-      $this->_afterLoad($job);
       return $job;
+    }
+    
+    return FALSE;
+  }
+
+  /**
+   * Attemps to reload a job using findAndModify so as to safely reserve the job
+   * to be run by the current process
+   *
+   * @param Cm_Mongo_Model_Job $job
+   * @return boolean
+   */
+  public function reloadJobForRunning(Cm_Mongo_Model_Job $job)
+  {
+    $data = $this->_getWriteAdapter()->findAndModify($this->_collectionName, array(
+        'query'  => array(
+          '_id'        => $job->getId(),
+          'status'     => Cm_Mongo_Model_Job::STATUS_PENDING,
+        ),
+        'update' => array(
+          'status'     => Cm_Mongo_Model_Job::STATUS_RUNNING,
+          'pid'        => getmypid(),
+        ),
+        'fields' => $this->getDefaultLoadFields(new Varien_Object()),
+        'new'    => true,
+    ));
+
+    if($data)
+    {
+      $this->hydrate($job, $data, TRUE);
+      return TRUE;
     }
     
     return FALSE;
