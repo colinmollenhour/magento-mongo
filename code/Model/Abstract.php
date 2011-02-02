@@ -97,8 +97,11 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
 
     // Set one key to a value
     else if($_value === NULL) {
-      // For arrays, unset the orig data so that the full value will be overwritten on update
-      if(is_array($value) && isset($this->_origData[$key]) && $this->_origData[$key] != $value) {
+      // For arrays and embedded collections, unset the orig data so that the full value will be overwritten on update
+      if(
+        (is_array($value) || $value instanceof Cm_Mongo_Model_Resource_Collection_Embedded) &&
+        (isset($this->_origData[$key]) && $this->_origData[$key] != $value)
+      ) {
         unset($this->_origData[$key]);
       }
       $this->_data[$key] = $value;

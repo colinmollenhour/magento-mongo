@@ -421,6 +421,19 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       else if($data) {
         $ops['$set'] = $data;
       }
+      
+      // Undo unsets that are overridden by sets
+      if(isset($ops['$unset']) && isset($ops['$set'])) {
+        foreach($ops['$unset'] as $key => $value) {
+          if(isset($ops['$set'][$key])) {
+            unset($ops['$unset'][$key]);
+          }
+        }
+        if( ! count($ops['$unset'])) {
+          unset($ops['$unset']);
+        }
+      }
+
       if($ops) {
         $this->_getWriteCollection()->update(
           array($this->getIdFieldName() => $object->getId()),
