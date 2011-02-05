@@ -390,11 +390,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       
       // Execute any pending operations
       if($ops) {
-        $this->_getWriteCollection()->update(
-          array($this->getIdFieldName() => $object->getId()),
-          $ops,
-          array('upsert' => FALSE, 'multiple' => FALSE, 'safe' => TRUE)
-        );
+        $this->update($object, $ops);
       }
     }
 
@@ -435,11 +431,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       }
 
       if($ops) {
-        $this->_getWriteCollection()->update(
-          array($this->getIdFieldName() => $object->getId()),
-          $ops,
-          array('upsert' => FALSE, 'multiple' => FALSE, 'safe' => TRUE)
-        );
+        $this->update($object, $ops);
       }
     }
 
@@ -461,11 +453,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       else {
         $ops['$set'] = $data;
       }
-      $this->_getWriteCollection()->update(
-        array($this->getIdFieldName() => $object->getId()),
-        $ops,
-        array('upsert' => TRUE, 'multiple' => FALSE, 'safe' => TRUE)
-      );
+      $this->update($object, $ops, array('upsert' => TRUE));
     }
     
     // Reset object state for successful save
@@ -638,6 +626,41 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       $rawData[$field] = $value;
     }
     return $rawData;
+  }
+
+  /**
+   * Update a document
+   *
+   * @param mixed $criteria  If an object, the object _id will be used as the criteria
+   * @param mixed $update
+   * @param mixed $key
+   * @param mixed $value
+   * @param array $options
+   * @return boolean
+   */
+  public function update($criteria, $update, $key = NULL, $value = NULL, $options = array())
+  {
+    // Prepare criteria
+    if($criteria instanceof Cm_Mongo_Model_Abstract) {
+      $criteria = array($criteria->getIdFieldName() => $criteria->getId());
+    } else if ( ! is_array($criteria)) {
+      $criteria = array('_id' => $criteria);
+    }
+
+    // Prepare update
+    if(is_string($update)) {
+      if(is_string($key)) {
+        $update = array($update => array($key, $value));
+      } else {
+        $update = array($update => $key);
+      }
+    }
+
+    // Prepare options
+    $options = array_merge(array('upsert' => FALSE, 'multiple' => FALSE, 'safe' => TRUE), $options);
+
+    // Execute
+    return $this->_getWriteCollection()->update_safe($criteria, $update, $options);
   }
 
   /**
