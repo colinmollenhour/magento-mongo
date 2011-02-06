@@ -650,7 +650,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     // Prepare update
     if(is_string($update)) {
       if(is_string($key)) {
-        $update = array($update => array($key, $value));
+        $update = array($update => array($key => $value));
       } else {
         $update = array($update => $key);
       }
