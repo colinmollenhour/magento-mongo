@@ -472,12 +472,14 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    */
   public function delete(Mage_Core_Model_Abstract $object)
   {
-    $this->_beforeDelete($object);
-    $this->_getWriteCollection()->remove(
-      array($this->getIdFieldName() => $object->getId()),
-      array('justOne' => TRUE, 'safe' => TRUE)
-    );
-    $this->_afterDelete($object);
+    if($object->getId() !== NULL) {
+      $this->_beforeDelete($object);
+      $this->_getWriteCollection()->remove(
+        array($this->getIdFieldName() => $object->getId()),
+        array('justOne' => TRUE, 'safe' => TRUE)
+      );
+      $this->_afterDelete($object);
+    }
     return $this;
   }
 
@@ -843,6 +845,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    */
   protected function _getItemKey($id)
   {
+    $id = $this->castToMongo('_id', $id);
     if($id instanceof MongoId) {
       return (string) $id;
     }

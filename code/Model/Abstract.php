@@ -86,6 +86,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
     // Set all new data
     if(is_array($key)) {
       if($this->_origData) {
+        $this->_data = array();
         foreach($key as $k => $v) {
           $this->setData($k, $v);
         }
