@@ -808,7 +808,9 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    */
   protected function _setOrder($field, $direction, $unshift = false)
   {
-    $direction = (strtoupper($direction) == self::SORT_ORDER_ASC) ? Mongo_Collection::ASC : Mongo_Collection::DESC;
+    if(is_string($direction)) {
+      $direction = (strtoupper($direction) == self::SORT_ORDER_ASC) ? Mongo_Collection::ASC : Mongo_Collection::DESC;
+    }
 
     // emulate associative unshift
     if ($unshift) {
