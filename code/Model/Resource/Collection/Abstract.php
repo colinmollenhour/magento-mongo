@@ -713,11 +713,11 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       elseif (isset($condition['neq'])) {
         // Search array for presence of a single value
         if( ! is_array($condition['neq']) && $this->getResource()->getFieldType($fieldName) == 'set') {
-          $query = array($fieldName => $condition['neq']);
+          $query = array($fieldName => array('$ne' => $condition['neq']));
         }
         // Search for an exact match
         else {
-          $query = array($fieldName => $this->castFieldValue($fieldName, $condition['neq']));
+          $query = array($fieldName => array('$ne' => $this->castFieldValue($fieldName, $condition['neq'])));
         }
       }
 
