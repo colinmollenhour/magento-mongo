@@ -380,7 +380,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
     
     // Save operation for later
     if( ! isset($this->_operations)) {
-      $this->_operations = array();
+      $this->_operations = new ArrayObject();
     }
     if( ! isset($this->_operations[$op])) {
       $this->_operations[$op] = array();
@@ -397,7 +397,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
    */
   public function getPendingOperations()
   {
-    return isset($this->_operations) ? $this->_operations : array();
+    return isset($this->_operations) ? $this->_operations->getArrayCopy() : array();
   }
 
   /**
