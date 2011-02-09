@@ -12,6 +12,13 @@ class Cm_Mongo_Model_Enum
     $this->_init('mongo/enum');
   }
 
+  public function addDefaultValue($key, $data)
+  {
+    $defaults = $this->getDefaults();
+    $defaults[$key] = $data;
+    $this->setDefaults($defaults);
+  }
+
   public function getValues()
   {
     if($this->getStoreId()) {
