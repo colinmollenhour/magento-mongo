@@ -177,7 +177,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
     $object->_setEmbeddedIn($this, $this->getFieldPath($field));
     $this->setData($field, $object);
     if( ! isset($this->_children)) {
-      $this->_children = array();
+      $this->_children = new ArrayObject();
     }
     $this->_children[$field] = $object;
     return $this;
@@ -225,7 +225,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
     // Set data and add collection to children for proper reset and hasDataChanges operation
     $this->setData($field, $collection);
     if( ! isset($this->_children)) {
-      $this->_children = array();
+      $this->_children = new ArrayObject();
     }
     $this->_children[$field] = $collection;
     return $this;
