@@ -475,13 +475,14 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
   }
 
   /**
-   * Get the specified field as a Zend_Date
+   * Get the specified field as a Zend_Date or formatted if $format is given.
    *
    * @param string $field
+   * @param string $format
    * @param boolean $useTimezone
-   * @return Zend_Date
+   * @return Zend_Date|string
    */
-  public function getAsZendDate($field, $useTimezone = true)
+  public function getAsZendDate($field, $format = null, $useTimezone = true)
   {
     $type = $this->getResource()->getFieldType($field);
     $data = $this->getData($field);
@@ -492,17 +493,24 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
     switch($type)
     {
       case 'MongoDate':
-        return Mage::app()->getLocale()->date($data->sec, null, null, $useTimezone);
+        $date = Mage::app()->getLocale()->date($data->sec, null, null, $useTimezone);
+        break;
 
       case 'datestring':
-        return Mage::app()->getLocale()->date($data, Varien_Date::DATE_INTERNAL_FORMAT, null, false);
+        $date = Mage::app()->getLocale()->date($data, Varien_Date::DATE_INTERNAL_FORMAT, null, false);
+        break;
 
       case 'timestamp':
       case 'int':
       case 'float':
       default:
-        return Mage::app()->getLocale()->date($data, null, null, $useTimezone);
+        $date = Mage::app()->getLocale()->date($data, null, null, $useTimezone);
+        break;
     }
+    if($format !== null) {
+      return $date->toString($format);
+    }
+    return $date;
   }
 
   /**
