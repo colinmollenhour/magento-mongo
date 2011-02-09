@@ -100,6 +100,7 @@ class Cm_Mongo_Model_Resource_Setup extends Mage_Core_Model_Resource_Setup
         try {
           switch ($fileType) {
             case 'js':
+              $result = true;
               exec("mongo --quiet {$this->_connectionConfig->server}/{$this->_connectionConfig->database} $sqlFile", $output, $status);
               if($status != 0) {
                 throw new Exception($output);
