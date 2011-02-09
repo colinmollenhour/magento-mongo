@@ -453,6 +453,8 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
 
   /**
    * When memory usage is important, use this to ensure there are no memory leaks.
+   *
+   * @return Cm_Mongo_Model_Abstract
    */
   public function reset()
   {
@@ -469,6 +471,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
       }
       unset($this->_children);
     }
+    return $this;
   }
 
   /**
