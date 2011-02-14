@@ -142,24 +142,40 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    * If the collection is already loaded it will preload the referenced
    * collection immediately.
    *
+   * Supports reference chains in field name using -> delimiter.
+   *
    * @param string|array $field
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
   public function addFieldToPreload($field)
   {
+    // Process arrays individually
     if(is_array($field)) {
       foreach($field as $_field) {
-        $this->_preloadFields[$_field] = TRUE;
+        $this->addFieldToPreload($_field);
+      }
+      return $this;
+    }
+
+    // If a field uses chaining
+    if(strpos($field, '->'))
+    {
+      $parts = explode('->', $field);
+      $collection = $this;
+      while($_field = array_shift($parts)) {
+        $collection = $collection->addFieldToPreload($_field)->getReferencedCollection($_field);
       }
     }
-    else {
+    
+    // Otherwise
+    else if( ! isset($this->_preloadFields[$field]))
+    {
       $this->_preloadFields[$field] = TRUE;
     }
 
     if($this->isLoaded()) {
       $this->_loadReferences();
     }
-
     return $this;
   }
 
@@ -185,12 +201,14 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   /**
    * Adds the collection to the resource cache after the collection is loaded
    *
+   * @param boolean $now  Force the collection to be added now even if it is not loaded
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
-  public function addToCache()
+  public function addToCache($now = FALSE)
   {
-    if($this->isLoaded()) {
+    if( ($now || $this->isLoaded()) && ! isset($this->_addedToCache)) {
       $this->getResource()->addCollectionToCache($this);
+      $this->_addedToCache = TRUE;
     }
     else {
       $this->_addToCacheAfterLoad = TRUE;
@@ -266,8 +284,6 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
-   * Get referenced objects for the current query. Triggers a load if not already loaded.
-   * 
    * Returns the referenced collection unloaded so that additional filters/parameters may be set.
    *
    * @param string $field
@@ -277,41 +293,52 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   {
     if(empty($this->_referencedCollections[$field]))
     {
-      $ids = array();
+      $collection = Mage::getSingleton($this->getResource()->getFieldModelName($field))->getCollection();
+      $this->_referencedCollections[$field] = $collection;
+    }
+    return $this->_referencedCollections[$field];
+  }
 
-      // Get all ids for the given field
-      $fieldType = (string) $this->getResource()->getFieldType($field);
-      if($fieldType == 'reference') {
-        foreach($this->getItems() as $item) {
-          if($ref = $item->getData($field)) {
+  /**
+   * Applies a filter to the given collection based on this collection's field values.
+   *
+   * @param string $field
+   * @param Cm_Mongo_Model_Resource_Collection_Abstract $collection
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   */
+  public function applyReferencedCollectionFilter($field, $collection)
+  {
+    $ids = array();
+
+    // Get all ids for the given field
+    $fieldType = (string) $this->getResource()->getFieldType($field);
+    if($fieldType == 'reference') {
+      foreach($this->getItems() as $item) {
+        if($ref = $item->getData($field)) {
+          $ids[] = $ref;
+        }
+      }
+    }
+    // Get unique set of ids from field
+    else if($fieldType == 'referenceSet') {
+      foreach($this->getItems() as $item) {
+        if($refSet = $item->getData($field)) {
+          foreach($refSet as $ref) {
             $ids[] = $ref;
           }
         }
       }
-      // Get unique set of ids from field
-      else if($fieldType == 'referenceSet') {
-        foreach($this->getItems() as $item) {
-          if($refSet = $item->getData($field)) {
-            foreach($refSet as $ref) {
-              $ids[] = $ref;
-            }
-          }
-        }
-      }
-      else {
-        throw new Mage_Core_Exception("Cannot get referenced collection for field '$field' of type '$fieldype'.");
-      }
-
-      // array_unique is slow, but required for compatibility with MongoId and possibly other id data types
-      $ids = array_unique($ids);
-    
-      // Instantiate a collection filtered to the referenced objects using $in
-      $modelName = $this->getResource()->getFieldModelName($field);
-      $collection = Mage::getSingleton($modelName)->getCollection();
-      $collection->addFieldToFilter('_id', '$in', $ids);
-      $this->_referencedCollections[$field] = $collection;
     }
-    return $this->_referencedCollections[$field];
+    else {
+      throw new Mage_Core_Exception("Cannot get referenced collection for field '$field' of type '$fieldype'.");
+    }
+
+    // array_unique is slow, but required for compatibility with MongoId and possibly other id data types
+    $ids = array_unique($ids);
+
+    // Instantiate a collection filtered to the referenced objects using $in
+    $collection->addFieldToFilter('_id', '$in', $ids);
+    return $this;
   }
 
   /**
@@ -587,8 +614,10 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   {
     foreach($this->_preloadFields as $field => $true)
     {
-      if( ! isset($this->_referencedCollections[$field])) {
-        $this->getReferencedCollection($field)->addToCache();
+      $collection = $this->getReferencedCollection($field);
+      if( ! $collection->isLoaded()) {
+        $this->applyReferencedCollectionFilter($field, $collection);
+        $collection->addToCache(TRUE);
       }
     }
     return $this;
