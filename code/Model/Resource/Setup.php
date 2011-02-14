@@ -36,15 +36,9 @@ class Cm_Mongo_Model_Resource_Setup extends Mage_Core_Model_Resource_Setup
   {
     $filename = tempnam(sys_get_temp_dir(), 'magento').'.js';
     file_put_contents($filename, $js);
-    try {
-      exec("mongo --quiet {$this->_connectionConfig->server}/{$this->_connectionConfig->database} $filename", $output, $status);
-    }
-    catch(Exception $e) {
-      unlink($filename);
-      throw $e;
-    }
+    $output = shell_exec("mongo --quiet {$this->_connectionConfig->server}/{$this->_connectionConfig->database} $filename  2>&1 1> /dev/null");
     unlink($filename);
-    if($status != 0) {
+    if($output) {
       throw new Exception($output);
     }
     return $this;
@@ -101,8 +95,8 @@ class Cm_Mongo_Model_Resource_Setup extends Mage_Core_Model_Resource_Setup
           switch ($fileType) {
             case 'js':
               $result = true;
-              exec("mongo --quiet {$this->_connectionConfig->server}/{$this->_connectionConfig->database} $sqlFile", $output, $status);
-              if($status != 0) {
+              $output = shell_exec("mongo --quiet {$this->_connectionConfig->server}/{$this->_connectionConfig->database} $sqlFile 2>&1 1> /dev/null");
+              if($output) {
                 throw new Exception($output);
               }
               break;
