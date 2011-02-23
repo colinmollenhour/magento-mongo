@@ -337,7 +337,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     $ids = array_unique($ids);
 
     // Instantiate a collection filtered to the referenced objects using $in
-    $collection->addFieldToFilter('_id', '$in', $ids);
+    $collection->addFieldToFilter('_id', '$in', array_values($ids));
     return $this;
   }
 
