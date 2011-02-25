@@ -456,10 +456,13 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       $this->update($object, $ops, array('upsert' => TRUE));
     }
     
-    // Reset object state for successful save
-    $object->setOrigData()->resetPendingOperations()->isObjectNew(FALSE);
+    // Clear pending operations
+    $object->resetPendingOperations();
 
     $this->_afterSave($object);
+
+    // Reset object state after running _afterSave action in case _afterSave needs original data
+    $object->setOrigData()->isObjectNew(FALSE);
 
     return $this;
   }
