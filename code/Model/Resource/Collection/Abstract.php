@@ -193,7 +193,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     }
     $include = (int) $include;
 
-    $this->_query->fields($fields, $include);
+    $this->_query->fields($field, $include);
 
     return $this;
   }
@@ -330,7 +330,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       }
     }
     else {
-      throw new Mage_Core_Exception("Cannot get referenced collection for field '$field' of type '$fieldype'.");
+      throw new Mage_Core_Exception("Cannot get referenced collection for field '$field' of type '$fieldType'.");
     }
 
     // array_unique is slow, but required for compatibility with MongoId and possibly other id data types
@@ -425,7 +425,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     $idsQuery = clone $this->_query;
     $idsQuery->set_option('fields', array('_id' => 1));
     $ids = array();
-    foreach($idsQuery->cursor() as $key => $document) {
+    foreach($idsQuery->cursor() as $document) {
       $ids[] = $document['_id'];
     }
     return $ids;
@@ -639,7 +639,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   /**
    * Build query condition. See docs for addFieldToFilter.
    *
-   * @param string $fieldName
+   * @param string|array $fieldName
    * @param integer|string|array $condition
    * @param mixed $_condition
    * @return array
