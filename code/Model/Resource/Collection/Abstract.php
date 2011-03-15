@@ -438,7 +438,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    * @param   string $direction
    * @return  Cm_Mongo_Model_Resource_Collection_Abstract
    */
-  public function setOrder($field, $direction)
+  public function setOrder($field, $direction = self::SORT_ORDER_DESC)
   {
     return $this->_setOrder($field, $direction);
   }
@@ -450,7 +450,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    * @param string $direction
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
-  public function unshiftOrder($field, $direction)
+  public function unshiftOrder($field, $direction = self::SORT_ORDER_DESC)
   {
     return $this->_setOrder($field, $direction, true);
   }
