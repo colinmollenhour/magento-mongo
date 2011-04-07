@@ -12,6 +12,11 @@ class Cm_Mongo_Model_Enum
     $this->_init('mongo/enum');
   }
 
+  /**
+   * @param  string $key
+   * @param  array $data
+   * @return void
+   */
   public function addDefaultValue($key, $data)
   {
     $defaults = $this->getDefaults();
@@ -19,6 +24,9 @@ class Cm_Mongo_Model_Enum
     $this->setDefaults($defaults);
   }
 
+  /**
+   * @return array
+   */
   public function getValues()
   {
     if($this->getStoreId()) {
@@ -31,11 +39,18 @@ class Cm_Mongo_Model_Enum
     return (array) $this->getDefaults();
   }
 
+  /**
+   * @return int
+   */
   public function getValuesCount()
   {
     return count($this->getValues());
   }
 
+  /**
+   * @param string $first
+   * @return array
+   */
   public function toOptionArray($first = NULL)
   {
     $options = $this->getAllOptions();
@@ -45,6 +60,10 @@ class Cm_Mongo_Model_Enum
     return $options;
   }
 
+  /**
+   * @param string $first
+   * @return array
+   */
   public function toOptionHash($first = NULL)
   {
     $values = array();
@@ -61,6 +80,9 @@ class Cm_Mongo_Model_Enum
    * Implement methods for Mage_Eav_Model_Entity_Attribute_Source_Interface
    */
 
+  /**
+   * @return array
+   */
   public function getAllOptions()
   {
     $values = array();
@@ -69,7 +91,11 @@ class Cm_Mongo_Model_Enum
     }
     return $values;
   }
-  
+
+  /**
+   * @param  string $value
+   * @return bool|string
+   */
   public function getOptionText($value) {
     $values = $this->getValues();
     if( ! isset($values[$value])) {
