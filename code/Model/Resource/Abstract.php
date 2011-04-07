@@ -507,6 +507,9 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         $type = isset($mapping->type) ? (string) $mapping->type : 'string';
         if($type == 'embedded') {
           $model = $object->getDataUsingMethod($field);
+          if( ! $model instanceof Cm_Mongo_Model_Abstract) {
+            throw new Exception('Invalid embedded object instance for '.$field.'.');
+          }
           $model->getResource()->hydrate($model, $value, $original);
         }
         elseif($type == 'embeddedSet') {

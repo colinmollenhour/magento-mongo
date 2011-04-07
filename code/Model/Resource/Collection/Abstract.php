@@ -587,28 +587,16 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
 
   /**
    * Before load action
-   *
-   * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
-  protected function _beforeLoad()
-  {
-    return $this;
-  }
+  protected function _beforeLoad() { }
 
   /**
    * Process loaded collection data
-   *
-   * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
-  protected function _afterLoadData()
-  {
-    return $this;
-  }
+  protected function _afterLoadData() { }
 
   /**
    * Load references
-   *
-   * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
   protected function _loadReferences()
   {
@@ -620,20 +608,16 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
         $collection->addToCache(TRUE);
       }
     }
-    return $this;
   }
 
   /**
    * After load action
-   *
-   * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
   protected function _afterLoad()
   {
     if(isset($this->_addToCacheAfterLoad)) {
       $this->addToCache();
     }
-    return $this;
   }
 
   /**
