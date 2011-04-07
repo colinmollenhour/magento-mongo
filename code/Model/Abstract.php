@@ -354,7 +354,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
    * If $key is an array, the operation will be applied to each key => value pair.
    * 
    * @param string $op
-   * @param string $key
+   * @param string|Array $key
    * @param mixed $value
    * @return Cm_Mongo_Model_Abstract 
    */
@@ -388,7 +388,42 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
     if( ! isset($this->_operations[$op])) {
       $this->_operations[$op] = array();
     }
-    $this->_operations[$op][$key] = $value;
+
+    // Combine multiple $push/$pull into $pushAll/$pullAll
+    if(
+      in_array($op, array('$push','$pull')) &&
+      (
+        isset($this->_operations[$op][$key]) ||
+        (isset($this->_operations["{$op}All"]) && isset($this->_operations["{$op}All"][$key]))
+      )
+    ) {
+      if( ! isset($this->_operations["{$op}All"])) {
+        $this->_operations["{$op}All"] = array();
+      }
+      if( ! isset($this->_operations["{$op}All"][$key])) {
+        $this->_operations["{$op}All"][$key] = array();
+      }
+      if( isset($this->_operations[$op][$key]) ) {
+        $this->_operations["{$op}All"][$key][] = $this->_operations[$op][$key];
+        unset($this->_operations[$op][$key]);
+        if( ! $this->_operations[$op]) {
+          unset($this->_operations[$op]);
+        }
+      }
+      $this->_operations["{$op}All"][$key][] = $value;
+    }
+    // $pushAll/$pullAll gets aggregated instead of overwritten
+    else if(in_array($op, array('$pushAll','$pullAll'))) {
+      if( ! isset($this->_operations[$op][$key])) {
+        $this->_operations[$op][$key] = array();
+      }
+      $this->_operations[$op][$key][] = $value;
+    }
+    // All others overwrite
+    else {
+      $this->_operations[$op][$key] = $value;
+    }
+    
     $this->_hasDataChanges = TRUE;
     return $this;
   }
