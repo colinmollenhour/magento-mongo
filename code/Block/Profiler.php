@@ -33,7 +33,7 @@ class Cm_Mongo_Block_Profiler extends Mage_Core_Block_Abstract
           .'</tr>'
       ;
     }
-    echo '<tr><td align="right"><b>Total</b></td><td><b>'.number_format($allSum,4).'</b></td><td><b>'.$allCount.'</b></td></tr>';
+    echo '<tr><td align="right"><b>Total</b></td><td><b>'.number_format($allSum,4).'</b></td><td align="right"><b>'.$allCount.'</b></td></tr>';
     echo '</table>';
     echo '</div>';
 
