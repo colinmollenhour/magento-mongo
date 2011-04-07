@@ -81,8 +81,6 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
    */
   public function setData($key, $value = NULL, $_value = NULL)
   {
-    $this->_hasDataChanges = true;
-
     // Set all new data
     if(is_array($key)) {
       if($this->_origData) {
@@ -92,6 +90,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
         }
       }
       else {
+        $this->_hasDataChanges = true;
         $this->_data = $key;
       }
     }
@@ -105,7 +104,10 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
       ) {
         unset($this->_origData[$key]);
       }
-      $this->_data[$key] = $value;
+      if( ! isset($this->_data[$key]) || $this->_data[$key] !== $value) {
+        $this->_hasDataChanges = true;
+        $this->_data[$key] = $value;
+      }
     }
 
     // Set a nested key to a value
@@ -113,6 +115,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
       if( ! isset($this->_data[$key])) {
         $this->_data[$key] = array();
       }
+      $this->_hasDataChanges = true;
       $this->_data[$key][$value] = $_value;
     }
     
