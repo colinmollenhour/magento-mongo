@@ -84,6 +84,11 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
     // Set all new data
     if(is_array($key)) {
       if($this->_origData) {
+        if($this->isObjectNew() === FALSE) {
+          foreach($this->_data as $k => $v) {
+            $this->op('$unset', $k, 1);
+          }
+        }
         $this->_data = array();
         foreach($key as $k => $v) {
           $this->setData($k, $v);
@@ -107,6 +112,8 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
       if( ! isset($this->_data[$key]) || $this->_data[$key] !== $value) {
         $this->_hasDataChanges = true;
         $this->_data[$key] = $value;
+        // Set after unset overrides the unset
+        unset($this->_operations['$unset'][$key]);
       }
     }
 
@@ -386,7 +393,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
       $this->_operations = new ArrayObject();
     }
     if( ! isset($this->_operations[$op])) {
-      $this->_operations[$op] = array();
+      $this->_operations[$op] = new ArrayObject();
     }
 
     // Combine multiple $push/$pull into $pushAll/$pullAll
