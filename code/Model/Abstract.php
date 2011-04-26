@@ -115,7 +115,9 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
         
         // Set after unset overrides the unset for this field including any child fields
         if(isset($this->_operations['$unset'])) {
-          unset($this->_operations['$unset'][$key]);
+          if(isset($this->_operations['$unset'][$key])) {
+            unset($this->_operations['$unset'][$key]);
+          }
           foreach($this->_operations['$unset'] as $_key => $_value) {
             if(strpos($_key, "$key.") !== FALSE) {
               unset($this->_operations['$unset'][$_key]);
