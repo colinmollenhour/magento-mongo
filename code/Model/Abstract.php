@@ -112,8 +112,16 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
       if( ! isset($this->_data[$key]) || $this->_data[$key] !== $value) {
         $this->_hasDataChanges = true;
         $this->_data[$key] = $value;
-        // Set after unset overrides the unset
-        unset($this->_operations['$unset'][$key]);
+        
+        // Set after unset overrides the unset for this field including any child fields
+        if(isset($this->_operations['$unset'])) {
+          unset($this->_operations['$unset'][$key]);
+          foreach($this->_operations['$unset'] as $_key => $_value) {
+            if(strpos($_key, "$key.") !== FALSE) {
+              unset($this->_operations['$unset'][$_key]);
+            }
+          }
+        }
       }
     }
 
@@ -396,8 +404,19 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
       $this->_operations[$op] = new ArrayObject();
     }
 
+    // Unset the parent overwrites the children
+    if($op == '$unset') {
+      if(isset($this->_operations['$unset'])) {
+        foreach($this->_operations['$unset'] as $_key => $_value) {
+          if(strpos($_key, "$key.") !== FALSE) {
+            unset($this->_operations['$unset'][$_key]);
+          }
+        }
+      }
+      $this->_operations[$op][$key] = $value;
+    }
     // Combine multiple $push/$pull into $pushAll/$pullAll
-    if(
+    else if(
       in_array($op, array('$push','$pull')) &&
       (
         isset($this->_operations[$op][$key]) ||
