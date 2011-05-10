@@ -154,12 +154,17 @@ class Cm_Mongo_Model_Type_Tophp
 
   public function reference($mapping, $value)
   {
-    return $value;
+    return Mage::getResourceSingleton((string) $mapping->model)->castToMongo('_id', $value);
   }
 
   public function referenceSet($mapping, $value)
   {
-    return $value;
+    $resource = Mage::getResourceSingleton((string) $mapping->model);
+    $ids = array();
+    foreach($value as $id) {
+      $ids[] = $resource->castToMongo('_id', $id);
+    }
+    return $ids;
   }
 
   public function __call($name, $args)
