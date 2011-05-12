@@ -370,12 +370,12 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
    * 
    * If $key is an array, the operation will be applied to each key => value pair.
    * 
-   * @param string $op
+   * @param string|Array $op
    * @param string|Array $key
    * @param mixed $value
    * @return Cm_Mongo_Model_Abstract 
    */
-  public function op($op, $key, $value = NULL)
+  public function op($op, $key = NULL, $value = NULL)
   {
     // All operations are routed to the root object
     if(isset($this->_root)) {
@@ -390,7 +390,13 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
       return $this;
     }
     
-    // Allow multiple operations if $key is an array
+    // Allow multiple operations if $op is an array or $key is an array
+    if(is_array($op)) {
+      foreach($op as $k => $v) {
+        $this->op($k, $v);
+      }
+      return $this;
+    }
     if(is_array($key)) {
       foreach($key as $k => $v) {
         $this->op($op, $k, $v);
