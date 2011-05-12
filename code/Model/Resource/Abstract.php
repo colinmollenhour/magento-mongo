@@ -339,8 +339,8 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Save object
    *
-   * @param   Mage_Core_Model_Abstract $object
-   * @return  Mage_Core_Model_Mysql4_Abstract
+   * @param   Cm_Mongo_Model_Abstract $object
+   * @return  Cm_Mongo_Model_Resource_Abstract
    */
   public function save(Mage_Core_Model_Abstract $object)
   {
@@ -408,8 +408,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       );
 
       // Collect data for mongo and update using atomic operators
-      $data = $this->dehydrate($object, TRUE);
-      $data = $this->_flattenUpdateData($object->getOrigData(), $data);
+      $data = $this->getDataChangesForUpdate($object);
       $ops = $object->getPendingOperations();
       if(isset($ops['$set'])) {
         $ops['$set'] = array_merge($data, $ops['$set']);
@@ -722,6 +721,23 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     $result = $this->_getReadCollection()->findOne($query);
     if($result) {
       throw new Mage_Core_Exception('Duplicate value for field '.$field);
+    }
+  }
+
+  /**
+   * Get an array of changes. If $flat is true (default), the keys will be . delimited instead of nested
+   *
+   * @param Cm_Mongo_Model_Abstract $object
+   * @param bool $flat
+   * @return array
+   */
+  public function getDataChangesForUpdate(Cm_Mongo_Model_Abstract $object, $flat = TRUE)
+  {
+    $data = $this->dehydrate($object, TRUE);
+    if($flat) {
+      return $this->_flattenUpdateData($object->getOrigData(), $data);
+    } else {
+      return $data;
     }
   }
 
