@@ -714,8 +714,12 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
 
       // Equality
       elseif (isset($condition['eq'])) {
+        // Nested data, assume exact match (should we bother to typecast?)
+        if(strpos($fieldName,'.') !== false) {
+          $query = array($fieldName => $condition['eq']);
+        }
         // Search array for presence of a single value
-        if( ! is_array($condition['eq']) && $this->getResource()->getFieldType($fieldName) == 'set') {
+        else if( ! is_array($condition['eq']) && $this->getResource()->getFieldType($fieldName) == 'set') {
           $query = array($fieldName => $condition['eq']);
         }
         // Search for an exact match
@@ -794,7 +798,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
 
       // Bypass typecasting
       elseif (isset($condition['raw'])) {
-        $query = array($fieldName => $condition);
+        $query = array($fieldName => $condition['raw']);
       }
 
       // Assume an "equals" query
