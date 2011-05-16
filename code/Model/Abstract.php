@@ -63,7 +63,22 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
       return $this->_data;
     }
     if(strpos($key,'.')) {
-      return parent::getData(str_replace('.','/',$key));
+      $keyArr = explode('.', $key);
+      $data = $this->_data;
+      foreach($keyArr as $k) {
+        if($data instanceof Varien_Object) {
+          $data = $data->getData($k);
+        }
+        else if(is_array($data)) {
+          if( ! isset($data[$k])) {
+            return NULL;
+          }
+          $data = $data[$k];
+        }
+        else {
+          return NULL;
+        }
+      }
     }
     return isset($this->_data[$key]) ? $this->_data[$key] : NULL;
   }
