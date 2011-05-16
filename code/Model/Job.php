@@ -1,5 +1,20 @@
 <?php
-
+/**
+ * Job model.
+ *
+ * Fields:
+ *   _id
+ *   task
+ *   job_data
+ *   status
+ *   status_message
+ *   pid
+ *   retries
+ *   priority
+ *   execute_at
+ *   error_log
+ *   other_data
+ */
 class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
 {
 
@@ -55,7 +70,8 @@ class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
 
   /**
    * @param string $status
-   * @param string $statusMessage
+   * @param string|NULL $statusMessage
+   * @return Cm_Mongo_Model_Job
    */
   public function updateStatus($status, $statusMessage = NULL)
   {
@@ -147,6 +163,9 @@ class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
       case 'model':
         $object = Mage::getModel((string)$this->getTaskConfig('class'));
         break;
+      case 'resource':
+        $object = Mage::getResourceSingleton((string)$this->getTaskConfig('class'));
+        break;
       case 'singleton':
       default:
         $object = Mage::getSingleton((string)$this->getTaskConfig('class'));
@@ -172,7 +191,7 @@ class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
     try {
 
       // Load object if a load_index is specified
-      if($type == 'model' && ($loadIndex = $this->getTaskConfig('load_index'))) {
+      if($this->getTaskConfig('type') == 'model' && ($loadIndex = $this->getTaskConfig('load_index'))) {
         if( ! $data->hasData($loadIndex)) {
           throw new Exception('No id in job data to load by.');
         }
@@ -237,7 +256,7 @@ class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
   protected function _beforeSave()
   {
     if($this->getData('priority') === null) {
-      $priority = Mage::app()->getConfig()->getNode("mongo_queue/tasks/$task/priority");
+      $priority = $this->getTaskConfig('priority');
       if($priority === false) {
         $priority = Cm_Mongo_Model_Job::DEFAULT_PRIORITY;
       }
