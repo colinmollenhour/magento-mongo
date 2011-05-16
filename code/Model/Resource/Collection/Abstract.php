@@ -38,6 +38,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     $this->_resource = $resource;
     $this->_conn = $this->getResource()->getReadConnection();
     $this->_query = $this->_conn->selectCollection($this->getCollectionName());
+    $this->_prepareQuery();
   }
   
   /**
@@ -45,6 +46,14 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    */
   public function _construct()
   {
+  }
+
+  /**
+   * Overload to prepare the query
+   */
+  protected function _prepareQuery()
+  {
+    $this->_query->set_option('fields', $this->getResource()->getDefaultLoadFields(new Varien_Object));
   }
 
   /**

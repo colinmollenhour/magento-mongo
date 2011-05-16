@@ -3,6 +3,8 @@
 abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource_Abstract
 {
 
+  const TASK_MODEL_INDEXER = 'mongo_model_indexer';
+
   /** @var string  The resource group in the schema */
   protected $_resourceModel;
 
@@ -316,7 +318,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    */
   public function getDefaultLoadFields($object)
   {
-    return array(); // all fields
+    return array('_' => 0); // all fields minus the foreign indexes
   }
 
   /**
@@ -458,6 +460,11 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     // Clear pending operations
     $object->resetPendingOperations();
 
+    // Queue an index update
+    if($object->getId() && $this->getEntitySchema()->descend('indexers')) {
+      $this->queueIndexUpdate($object, array_keys($data));
+    }
+
     $this->_afterSave($object);
 
     // Reset object state after running _afterSave action in case _afterSave needs original data
@@ -541,6 +548,9 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       else {
         $object->setData($field, NULL);
       }
+    }
+    if(isset($data['_'])) {
+      $object->setData('_',$data['_']);
     }
     
     if($original) {
@@ -872,6 +882,37 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       return (string) $id;
     }
     return $id;
+  }
+
+  /**
+   * @param Cm_Mongo_Model_Abstract $object
+   * @param array|string $fields
+   * @return void
+   */
+  public function queueIndexUpdate(Cm_Mongo_Model_Abstract $object, $fields)
+  {
+    if($this->isIndexerLocked()) {
+      return;
+    }
+    $job = Mage::getModel('mongo/job'); /* @var $job Cm_Mongo_Model_Job */
+    $job->setData(array(
+      'task'     => self::TASK_MODEL_INDEXER,
+      'job_data' => array(
+        'model'     => $this->_resourceModel.'/'.$this->_entityName,
+        'object_id' => $object->getId(),
+        'fields'    => $fields,
+      ),
+      'object_to_index' => $object, // Prevents reloading object if run in real-time mode
+    ));
+  }
+
+  /**
+   * @param Cm_Mongo_Model_Abstract $object
+   * @return void
+   */
+  public function queueReindex(Cm_Mongo_Model_Abstract $object)
+  {
+    $this->queueIndexUpdate($object, '*');
   }
 
 }
