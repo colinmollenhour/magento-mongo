@@ -133,7 +133,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
           if(isset($this->_operations['$unset'][$key])) {
             unset($this->_operations['$unset'][$key]);
           }
-          foreach($this->_operations['$unset'] as $_key => $_value) {
+          foreach($this->_operations['$unset']->getArrayCopy() as $_key => $_value) {
             if(strpos($_key, "$key.") !== FALSE) {
               unset($this->_operations['$unset'][$_key]);
             }
@@ -178,7 +178,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
    */
   public function loadData($data)
   {
-    $this->getResource()->hydrate($this, $data, FALSE);
+    $this->getResource()->hydrate($this, (array) $data, FALSE);
     return $this;
   }
   
@@ -392,19 +392,6 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
    */
   public function op($op, $key = NULL, $value = NULL)
   {
-    // All operations are routed to the root object
-    if(isset($this->_root)) {
-      if(is_array($key)) {
-        foreach($key as $k => $v) {
-          $this->getRootObject()->op($op, $this->_path.$k, $v);
-        }
-      }
-      else {
-        $this->getRootObject()->op($op, $this->_path.$key, $value);
-      }
-      return $this;
-    }
-    
     // Allow multiple operations if $op is an array or $key is an array
     if(is_array($op)) {
       foreach($op as $k => $v) {
@@ -419,6 +406,12 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
       return $this;
     }
     
+    // All operations are routed to the root object
+    if(isset($this->_root)) {
+      $this->getRootObject()->op($op, $this->_path.$key, $value);
+      return $this;
+    }
+
     // Save operation for later
     if( ! isset($this->_operations)) {
       $this->_operations = new ArrayObject();
@@ -430,7 +423,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
     // Unset the parent overwrites the children
     if($op == '$unset') {
       if(isset($this->_operations['$unset'])) {
-        foreach($this->_operations['$unset'] as $_key => $_value) {
+        foreach($this->_operations['$unset']->getArrayCopy() as $_key => $_value) {
           if(strpos($_key, "$key.") !== FALSE) {
             unset($this->_operations['$unset'][$_key]);
           }

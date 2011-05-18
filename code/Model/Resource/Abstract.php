@@ -492,7 +492,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    * @param array $data
    * @param boolean $original   Is the data from the database?
    */
-  public function hydrate(Varien_Object $object, $data, $original = FALSE)
+  public function hydrate(Varien_Object $object, array $data, $original = FALSE)
   {
     $converter = $this->getMongoToPhpConverter();
     foreach($this->getFieldMappings() as $field => $mapping)
