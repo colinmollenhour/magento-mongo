@@ -79,6 +79,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
           return NULL;
         }
       }
+      return $data;
     }
     return isset($this->_data[$key]) ? $this->_data[$key] : NULL;
   }
