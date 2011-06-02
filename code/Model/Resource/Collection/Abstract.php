@@ -825,7 +825,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    */
   protected function _setOrder($field, $direction, $unshift = false)
   {
-    if(is_string($direction)) {
+    if( ! ctype_digit($direction)) {
       $direction = (strtoupper($direction) == self::SORT_ORDER_ASC) ? Mongo_Collection::ASC : Mongo_Collection::DESC;
     }
 

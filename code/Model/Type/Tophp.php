@@ -66,7 +66,7 @@ class Cm_Mongo_Model_Type_Tophp
       return NULL;
     }
     else if(is_int($value) || is_float($value)) {
-      return (int) $value;
+      return $value;
     }
     else if($value instanceof Zend_Date) {
       return $value->getTimestamp();

@@ -17,6 +17,7 @@ class Cm_Mongo_Getter
    *
    * @param string $path    Dot-delimited path to desired data
    * @param string $type    Optional data type to convert value to
+   * @return array
    */
   public static function factory($path, $type = NULL)
   {

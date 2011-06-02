@@ -514,7 +514,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
   
   /**
    * Initialize object original data
-   * Overridden so that it resets the state of hasDataChanges when called ithout arguments
+   * Overridden so that it resets the state of hasDataChanges when called without arguments
    *
    * @param string $key
    * @param mixed $data
