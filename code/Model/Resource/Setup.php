@@ -101,7 +101,6 @@ class Cm_Mongo_Model_Resource_Setup extends Mage_Core_Model_Resource_Setup
               }
               break;
             case 'php':
-              $conn = $this->_mongoConn;
               $result = include($sqlFile);
               break;
             default:

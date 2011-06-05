@@ -51,6 +51,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    * Standard resource collection initalization
    *
    * @param string $model
+   * @param null $resourceModel
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
   protected function _init($model, $resourceModel=null)
@@ -128,7 +129,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    *
    * @param string $field
    * @param null|string|array $condition
-   * @param null|string|array $condition
+   * @param null|string|array $_condition
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
   public function addFieldToFilter($field, $condition=null, $_condition=null)
@@ -183,7 +184,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    * Add (or remove) fields to query results.
    *
    * @param string|array $field
-   * @param boolean $include
+   * @param bool|int $include
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
   public function addFieldToResults($field, $include = 1)
@@ -357,7 +358,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   /**
    * Get the collection name for this collection resource model
    *
-   * @param  string  The entity name to get the collection name for (defaults to current entity)
+   * @param  string $entityName The entity name to get the collection name for (defaults to current entity)
    * @return string
    */
   public function getCollectionName($entityName = NULL)
@@ -847,6 +848,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
 
   /**
    * Apply the limit and skip based on paging variables
+   * @return \Cm_Mongo_Model_Resource_Collection_Abstract
    */
   protected function _renderLimit()
   {

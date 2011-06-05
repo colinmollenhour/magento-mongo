@@ -6,7 +6,7 @@ class Cm_Mongo_Model_Resource_Type_Mongo extends Mage_Core_Model_Resource_Type_A
   /**
    * Get the Mongo database adapter
    *
-   * @param array $config Connection config
+   * @param Mage_Core_Model_Config_Element $config Connection config
    * @return Mongo_Database
    */
   public function getConnection(Mage_Core_Model_Config_Element $config)

@@ -24,7 +24,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Standard resource model initialization
    *
-   * @param string $collection
+   * @param string $resource
    */
   protected function _init($resource)
   {
@@ -262,6 +262,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Set created_at and/or update_at timestamps on the given object
    *
+   * @param Mage_Core_Model_Abstract $object
    * @param boolean $created
    * @param boolean $updated
    */
@@ -283,7 +284,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    * @param   Mage_Core_Model_Abstract $object
    * @param   mixed $value
    * @param   string $field field to load by (defaults to model id)
-   * @return  Mage_Core_Model_Mysql4_Abstract
+   * @return  Cm_Mongo_Model_Abstract
    */
   public function load(Mage_Core_Model_Abstract $object, $value, $field=null)
   {
@@ -324,7 +325,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    *
    * @param array $query
    * @param array $fields
-   * @return type 
+   * @return array
    */
   public function getDocument($query, $fields = array())
   {
@@ -339,7 +340,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Save object
    *
-   * @param   Cm_Mongo_Model_Abstract $object
+   * @param Cm_Mongo_Model_Abstract|Mage_Core_Model_Abstract $object
    * @return  Cm_Mongo_Model_Resource_Abstract
    */
   public function save(Mage_Core_Model_Abstract $object)
@@ -469,8 +470,8 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Delete the object
    *
-   * @param Varien_Object $object
-   * @return Mage_Core_Model_Mysql4_Abstract
+   * @param Mage_Core_Model_Abstract $object
+   * @return Cm_Mongo_Model_Abstract
    */
   public function delete(Mage_Core_Model_Abstract $object)
   {
@@ -743,7 +744,8 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
 
   /**
    * Flatten a nested array of values to update into . delimited keys
-   * 
+   *
+   * @param array $orig
    * @param array $data
    * @param string $path   Used for recursion
    * @return array
