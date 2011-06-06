@@ -488,7 +488,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
    */
   public function resetPendingOperations()
   {
-    unset($this->_operations);
+    $this->_operations = NULL;
     return $this;
   }
  
