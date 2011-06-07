@@ -639,7 +639,16 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       }
     }
 
-    // Handle cross-collection filters with field names like bar_id:name
+    // Handle multi-field filters with field names like firstname|lastname using $or
+    else if (strpos($fieldName, '|')) {
+      $query = array();
+      foreach(explode('|', $fieldName) as $_fieldName) {
+        $query[] = $this->_getCondition($_fieldName, $condition, $_condition);
+      }
+      $query = array('$or' => $query);
+    }
+
+    // Handle cross-collection filters with field names like bar_id->name
     else if (strpos($fieldName, '->')) {
       list($reference,$referenceField) = explode('->', $fieldName, 2);
       $collection = Mage::getSingleton($this->getResource()->getFieldModelName($reference))->getCollection();
