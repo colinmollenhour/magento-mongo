@@ -412,12 +412,12 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       $data = $this->getDataChangesForUpdate($object);
       $ops = $object->getPendingOperations();
       if(isset($ops['$set'])) {
-        $ops['$set'] = array_merge($data, $ops['$set']);
+        $ops['$set'] = array_merge($data, (array) $ops['$set']);
       }
       else if($data) {
         $ops['$set'] = $data;
       }
-      
+
       // Undo unsets that are overridden by sets
       if(isset($ops['$unset']) && isset($ops['$set'])) {
         foreach($ops['$unset'] as $key => $value) {
@@ -448,7 +448,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       $data = $this->dehydrate($object);
       $ops = $object->getPendingOperations();
       if(isset($ops['$set'])) {
-        $ops['$set'] = array_merge($ops['$set'], $data);
+        $ops['$set'] = array_merge($data, (array) $ops['$set']);
       }
       else {
         $ops['$set'] = $data;
