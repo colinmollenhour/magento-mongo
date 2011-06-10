@@ -18,6 +18,8 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
   protected $_root;
   protected $_path;
   protected $_operations;
+  protected $_additionalSaveCriteria;
+  protected $_additionalSaveOptions;
 
   /** @var boolean  If enabled, a load will add the item to cache */
   protected $_isCacheEnabled = FALSE;
@@ -90,7 +92,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
    * Overridden to allow full arrays and nested values to be set. Otherwise,
    * adding a value to an array using setData would lose the proper order.
    *
-   * @param mixed $key
+   * @param string|array $key
    * @param mixed $value
    * @param mixed $_value
    * @return Cm_Mongo_Model_Abstract
@@ -493,6 +495,47 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
     return $this;
   }
  
+  /**
+   * Set additional criteria that will be added to the update query on the next save.
+   * The criteria will be cleared after each save.
+   *
+   * @param array|null $query
+   * @return Cm_Mongo_Model_Abstract
+   */
+  public function setAdditionalSaveCriteria(array $query = NULL)
+  {
+    $this->_additionalSaveCriteria = $query;
+    return $this;
+  }
+
+  /**
+   * @return array|null
+   */
+  public function getAdditionalSaveCriteria()
+  {
+    return $this->_additionalSaveCriteria;
+  }
+
+  /**
+   * Set options that override the defaults when the object is saved.
+   *
+   * @param array|null $options
+   * @return Cm_Mongo_Model_Abstract
+   */
+  public function setAdditionalSaveOptions(array $options = NULL)
+  {
+    $this->_additionalSaveOptions = $options;
+    return $this;
+  }
+
+  /**
+   * @return array|null
+   */
+  public function getAdditionalSaveOptions()
+  {
+    return $this->_additionalSaveOptions;
+  }
+
   /**
    * Overriden to check all embedded objects for data changes as well.
    * 

@@ -116,17 +116,6 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   }
 
   /**
-   * Return the value as an id. Can be used to force id to be a specific type.
-   * 
-   * @param mixed $value
-   * @return mixed
-   */
-  public function getIdValue($value)
-  {
-    return $value;
-  }
-  
-  /**
    * Get cached reference to mongo schema model
    *
    * @return Cm_Mongo_Model_Schema
@@ -383,8 +372,15 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         }
       }
 
+      // Get insert options, merge default with instance-specific options
+      $options = array('safe' => TRUE);
+      if($additionalSaveOptions = $object->getAdditionalSaveOptions()) {
+        unset($additionalSaveOptions['upsert'],$additionalSaveOptions['multiple']);
+        $options = array_merge($options, $additionalSaveOptions);
+      }
+
       // Insert document
-      $this->_getWriteCollection()->insert($data, array('safe' => TRUE));
+      $this->_getWriteCollection()->insert($data, $options);
       if( ! $object->hasData('_id') || $data['_id'] != $object->getData('_id')) {
         $object->setData('_id', $data['_id']);
       }
@@ -653,10 +649,10 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Update a document
    *
-   * @param mixed $criteria  If an object, the object _id will be used as the criteria
-   * @param mixed $update
-   * @param mixed $key
-   * @param mixed $value
+   * @param array|Cm_Mongo_Model_Abstract $criteria  If an object, the object _id will be used as the criteria
+   * @param array|string $update
+   * @param array|string|null $key
+   * @param array|string|int|float|MongoDate|null $value
    * @param array $options
    * @return boolean
    */
@@ -664,8 +660,17 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   {
     // Prepare criteria
     if($criteria instanceof Cm_Mongo_Model_Abstract) {
-      $criteria = array($criteria->getIdFieldName() => $criteria->getId());
-    } else if ( ! is_array($criteria)) {
+      $idQuery = array($criteria->getIdFieldName() => $criteria->getId());
+      if($additionalCriteria = $criteria->getAdditionalSaveCriteria()) {
+        $idQuery = array_merge($idQuery, $additionalCriteria);
+        $criteria->setAdditionalSaveCriteria();
+      }
+      if($additionalOptions = $criteria->getAdditionalSaveOptions()) {
+        $options = array_merge($options, $additionalOptions);
+      }
+      $criteria = $idQuery;
+    }
+    else if ( ! is_array($criteria)) {
       $criteria = array('_id' => $criteria);
     }
 
@@ -859,7 +864,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Fetches an object from the resource's cache
    *
-   * @param mixed $id
+   * @param int|string|MongoId $id
    * @return Cm_Mongo_Model_Abstract
    */
   public function getCachedObject($id)
@@ -878,8 +883,8 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Get a key for an item
    * 
-   * @param mixed $id
-   * @return mixed 
+   * @param int|string|MongoId $id
+   * @return int|string
    */
   protected function _getItemKey($id)
   {
