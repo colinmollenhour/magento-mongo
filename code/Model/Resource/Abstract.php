@@ -510,9 +510,17 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
           if( ! $model instanceof Cm_Mongo_Model_Abstract) {
             throw new Exception('Invalid embedded object instance for '.$field.'.');
           }
+          // Allow data to be hydrated from Varien_Object
+          if($value instanceof Varien_Object) {
+            $value = $value->getData();
+          }
           $model->getResource()->hydrate($model, $value, $original);
         }
         elseif($type == 'embeddedSet') {
+          // Allow data to be hydrated from Varien_Data_Collection
+          if($value instanceof Varien_Data_Collection) {
+            $value = $value->walk('getData');
+          }
           if( ! $object->getData($field)) {
             $set = $object->getDataUsingMethod($field);
             foreach($value as $itemData)
