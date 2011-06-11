@@ -40,13 +40,13 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
    * 
    * Overridden to allow NULL to be set/returned for upsert on save.
    * 
-   * @param boolean $flag
-   * @return boolean
+   * @param null|bool $flag
+   * @return null|bool
    */
   public function isObjectNew($flag = -1)
   {
     if($flag !== -1) {
-      $this->_isObjectNew = (bool) $flag;
+      $this->_isObjectNew = $flag;
     }
     return $this->_isObjectNew;
   }
@@ -434,7 +434,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
           }
         }
       }
-      $this->_operations[$op][$key] = $value;
+      $this->_operations[$op][$key] = 1;
     }
     // Combine multiple $push/$pull into $pushAll/$pullAll
     else if(

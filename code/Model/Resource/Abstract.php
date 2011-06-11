@@ -442,16 +442,18 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         $this->getEntitySchema()->updated_timestamp
       );
 
-      // Collect data for mongo and operations and upsert
+      // Collect data for upsert. If no operations then use data, otherwise add data to $set operation
       $data = $this->dehydrate($object);
-      $ops = $object->getPendingOperations();
-      if(isset($ops['$set'])) {
-        $ops['$set'] = array_merge($data, (array) $ops['$set']);
+      if($ops = $object->getPendingOperations()) {
+        if(isset($ops['$set'])) {
+          $ops['$set'] = array_merge($data, (array) $ops['$set']);
+        }
+        else {
+          $ops['$set'] = $data;
+        }
+        $data = $ops;
       }
-      else {
-        $ops['$set'] = $data;
-      }
-      $object->setLastUpdateStatus($this->update($object, $ops, array('upsert' => TRUE)));
+      $object->setLastUpdateStatus($this->update($object, $data, array('upsert' => TRUE)));
     }
     
     // Clear pending operations
@@ -663,9 +665,17 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     // Prepare criteria
     if($criteria instanceof Cm_Mongo_Model_Abstract) {
       $idQuery = array($criteria->getIdFieldName() => $criteria->getId());
-      if($additionalCriteria = $criteria->getAdditionalSaveCriteria()) {
+
+      // Allow updates with additional criteria
+      if($additionalCriteria = $criteria->getAdditionalSaveCriteria())
+      {
         $idQuery = array_merge($idQuery, $additionalCriteria);
         $criteria->setAdditionalSaveCriteria();
+
+        // Allow updates without _id field if additional criteria specified (upsert)
+        if( ! $idQuery[$criteria->getIdFieldName()]) {
+          unset($idQuery[$criteria->getIdFieldName()]);
+        }
       }
       if($additionalOptions = $criteria->getAdditionalSaveOptions()) {
         $options = array_merge($options, $additionalOptions);
