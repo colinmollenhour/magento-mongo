@@ -9,13 +9,13 @@ class Cm_Mongo_Model_Mongo_Job extends Cm_Mongo_Model_Resource_Abstract
   }
 
   /**
-   * @return Cm_Mongo_Model_Job or FALSE if no job in ready queue
+   * @return Cm_Mongo_Model_Job|bool   FALSE if no job ready in queue
    */
   public function getNextJob()
   {
     $data = $this->_getWriteAdapter()->findAndModify($this->_collectionName, array(
         'query'  => array(
-          'status'     => Cm_Mongo_Model_Job::STATUS_PENDING,
+          'status'     => Cm_Mongo_Model_Job::STATUS_READY,
           'execute_at' => array('$lte' => time()),
         ),
         'sort'   => array(
@@ -26,7 +26,7 @@ class Cm_Mongo_Model_Mongo_Job extends Cm_Mongo_Model_Resource_Abstract
           'status'     => Cm_Mongo_Model_Job::STATUS_RUNNING,
           'pid'        => getmypid(),
         ),
-        'fields' => $this->getDefaultLoadFields(new Varien_Object()),
+        'fields' => $this->getDefaultLoadFields(new Varien_Object),
         'new'    => true,
     ));
 
@@ -52,7 +52,7 @@ class Cm_Mongo_Model_Mongo_Job extends Cm_Mongo_Model_Resource_Abstract
     $data = $this->_getWriteAdapter()->findAndModify($this->_collectionName, array(
         'query'  => array(
           '_id'        => $job->getId(),
-          'status'     => Cm_Mongo_Model_Job::STATUS_PENDING,
+          'status'     => Cm_Mongo_Model_Job::STATUS_READY,
         ),
         'update' => array(
           'status'     => Cm_Mongo_Model_Job::STATUS_RUNNING,

@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * Contains helper methods for adding jobs to the queue and running queued jobs.
+ */
 class Cm_Mongo_Helper_Queue extends Mage_Core_Helper_Abstract
 {
 
@@ -14,12 +16,28 @@ class Cm_Mongo_Helper_Queue extends Mage_Core_Helper_Abstract
    */
   public function addJob($task, $data, $priority = null, $executeAt = null)
   {
-    $job = Mage::getModel('mongo/job')->setData(array(
-        'status'     => Cm_Mongo_Model_Job::STATUS_READY,
-        'task'       => $task,
-        'job_data'   => $data,
-        'priority'   => $priority,
-        'execute_at' => $executeAt === NULL ? time() : $executeAt,
+    $job = $this->_initNewJob($task, $data, $priority, $executeAt);
+    $job->save();
+    return $job;
+  }
+
+  /**
+   * Add a job to the queue if it isn't already ready in the queue (upsert)
+   *
+   * @param string $task
+   * @param array $data
+   * @param int $priority  Optional override for priority
+   * @param int $executeAt   Optional timestamp specifying when to be run
+   * @return Cm_Mongo_Model_Job
+   */
+  public function addJobUnique($task, $data, $priority = null, $executeAt = null)
+  {
+    $job = $this->_initNewJob($task, $data, $priority, $executeAt);
+    $job->isObjectNew(NULL); // force upsert
+    $job->setAdditionalSaveCriteria(array(
+        'status'   => Cm_Mongo_Model_Job::STATUS_READY,
+        'task'     => $task,
+        'job_data' => $data,
     ));
     $job->save();
     return $job;
@@ -38,8 +56,8 @@ class Cm_Mongo_Helper_Queue extends Mage_Core_Helper_Abstract
   public function addAndRunJob($task, $data, $throws = FALSE)
   {
     try {
-      $job = $this->addJob($task, $data, $priority);
-      if( $job->getResource()->loadJobForRunning($job) ) {
+      $job = $this->addJob($task, $data);
+      if( $job->getResource()->reloadJobForRunning($job) ) {
         $job->run();
       }
     }
@@ -57,16 +75,16 @@ class Cm_Mongo_Helper_Queue extends Mage_Core_Helper_Abstract
   /**
    * Run the next jobs in the queue until the limit is reached
    *
-   * @param int $limit
-   * @param int $time
+   * @param int|null $limit      Maximum number of jobs to run
+   * @param int|null $timeLimit  Maximum amount of time to run for
    * @return int the number of jobs executed
    */
-  public function runQueue($limit = 100, $time = null)
+  public function runQueue($limit = 100, $timeLimit = null)
   {
-    if($time) {
-      $stopTime = time() + $time;
+    if($stopTime = $timeLimit) {
+      $stopTime += time();
     }
-    for($i = 0; ( ! $limit || $i < $limit) && ( ! $time || time() >= $stopTime); $i++)
+    for($i = 0; ( ! $limit || $i < $limit) && ( ! $stopTime || time() < $stopTime); $i++)
     {
       $job = Mage::getResourceSingleton('mongo/job')->getNextJob();
       if( ! $job) {
@@ -75,6 +93,27 @@ class Cm_Mongo_Helper_Queue extends Mage_Core_Helper_Abstract
       $job->run();
     }
     return $i;
+  }
+
+  /**
+   * Initialize a new job instance
+   *
+   * @param string $task
+   * @param array $data
+   * @param int $priority  Optional override for priority
+   * @param int $executeAt   Optional timestamp specifying when to be run
+   * @return Cm_Mongo_Model_Job
+   */
+  protected function _initNewJob($task, $data, $priority = null, $executeAt = null)
+  {
+    $job = Mage::getModel('mongo/job')->setData(array(
+        'status'     => Cm_Mongo_Model_Job::STATUS_READY,
+        'task'       => $task,
+        'job_data'   => $data,
+        'priority'   => $priority,
+        'execute_at' => $executeAt === NULL ? time() : $executeAt,
+    ));
+    return $job;
   }
 
 }

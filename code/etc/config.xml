@@ -121,6 +121,10 @@
     </jobs>
   </crontab>
 
+  <!-- See Cm_Mongo_Model_Job for more info -->
+  <mongo_queue>
+  </mongo_queue>
+
   <default>
     <system>
       <mongo_queue>

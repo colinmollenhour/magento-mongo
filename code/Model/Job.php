@@ -1,8 +1,49 @@
 <?php
 /**
- * Job model.
+ * Job model. Jobs are run with a variety of options as defined in config.xml as shown below.
  *
- * Fields:
+ * Remember that these options can be overridden in local.xml, for example to temporarily disable a group of tasks
+ * or to adjust the priorities of a task.
+ *
+ * <config>
+ *   <mongo_queue>
+ *     <tasks>
+ *       <your_task_name>
+ *         <type>singleton</type>           <!-- What type of class should be used? helper|model|resource|singleton  (default: singleton) -->
+ *         <class>foo/bar</class>           <!-- Path to load class by, according to <type> -->
+ *         <method>runQueue</method>        <!-- Method to run. Signature: (Varien_Object $data, Cm_Mongo_Model_Job $job) -->
+ *         <load_index>_id</load_index>     <!-- If type is 'model' the model will be loaded with the data at this index before the method is called. -->
+ *         <retries>3</retries>             <!-- Set the maximum number of retries for this task -->
+ *         <retry_schedule>                 <!-- If no retry schedule is given retries are scheduled immediately -->
+ *           +3 min, +1 hour, +12 hours     <!-- The schedule is a list of intervals which are strtotime compatible offsets -->
+ *         </retry_schedule>
+ *         <priorities>                     <!-- Set the default priority for this task. 50 is the default unless specified -->
+ *           50,60,100                      <!-- If multiple values are given the next priority will be used on each retry -->
+ *         </priorities>
+ *         <after_success>keep</after_success>   <!-- If 'keep', the job will not be deleted after it is completed successfully -->
+ *         <after_failure>delete</after_failure> <!-- If 'delete', the job will be deleted after failure (retries exhausted) -->
+ *         <logging/>                       <!-- Enable or disable logging of errors -->
+ *         <logfile>foo_queue.log</logfile> <!-- Set the logging destination. Defaults to mongo_queue_errors.txt -->
+ *         <disabled/>                      <!-- Disable a specific task -->
+ *         <disabled>false</disabled>       <!-- Override a previous "disabled" flag -->
+ *         <groups>foo,bar</groups>         <!-- Assign to one or more groups so a task can be disabled with other tasks as a group -->
+ *       </your_task_name>
+ *       <your_task_namespace>
+ *         <one>                            <!-- Task nested in a namespace: 'your_task_namespace/one' -->
+ *           <type>helper</type>
+ *           ...
+ *         </one>
+ *       </your_task_namespace>
+ *     </tasks>
+ *     <groups>
+ *       <foo>
+ *         <disabled/>  <!-- any tasks in "foo" group are disabled! -->
+ *       </foo>
+ *     </groups>
+ *   </mongo_queue>
+ * </config>
+ *
+ * Document Fields:
  *   _id
  *   task
  *   job_data
@@ -14,6 +55,8 @@
  *   execute_at
  *   error_log
  *   other_data
+ *
+ * @method Cm_Mongo_Model_Mongo_Job getResource()
  */
 class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
 {
@@ -95,14 +138,27 @@ class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
    */
   public function scheduleRetry()
   {
+    $retries = (int) $this->getRetries();
+
+    // Update the execute_at time
     $time = time();
     $schedule = (string) $this->getTaskConfig('retry_schedule');
     if($schedule) {
       $schedule = preg_split('/\s*,\s*/', $schedule, null, PREG_SPLIT_NO_EMPTY);
-      $retries = (int) $this->getRetries();
       $modifier = isset($schedule[$retries]) ? $schedule[$retries] : end($schedule);
       $time = strtotime($modifier, $time);
     }
+
+    // Update the priority unless it was already set explicitly
+    if( ! $this->dataHasChangedFor('priority')) {
+      $priorities = (string) $this->getTaskConfig('priorities');
+      $priorities = preg_split('/\s*,\s*/', $priorities, null, PREG_SPLIT_NO_EMPTY);
+      if(count($priorities) > 1) {
+        $this->setPriority(isset($priorities[$retries+1]) ? $priorities[$retries+1] : end($priorities));
+      }
+    }
+
+    // Reset to ready status
     $this->updateStatus(self::STATUS_READY)
          ->op('$inc', 'retries', 1)
          ->setExecuteAt($time);
@@ -142,7 +198,7 @@ class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
     }
 
     // Mark invalid if task not defined
-    if( ! $this->getTaskConfig('group')) {
+    if( ! $this->getTaskConfig('class')) {
       $this->updateStatus(self::STATUS_INVALID, 'Task not properly defined.')
            ->save();
       return;
@@ -195,15 +251,14 @@ class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
         if( ! $data->hasData($loadIndex)) {
           throw new Exception('No id in job data to load by.');
         }
-        $object->load($data->getData($loadIndex));
+        $object->load($data->getData($loadIndex), $loadIndex);
         $data->unsetData($loadIndex);
         if( ! $object->getId()) {
           throw new Exception('Object could not be loaded.');
         }
       }
 
-      $data->setJob($this);
-      $object->$method($data);
+      $object->$method($data, $this);
       
       // If status not changed by task, assume success
       if($this->getStatus() == self::STATUS_RUNNING || $this->getStatus() == self::STATUS_SUCCESS) {
@@ -255,13 +310,30 @@ class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
 
   protected function _beforeSave()
   {
+    // Make sure a priority is set
     if($this->getData('priority') === null) {
-      $priority = $this->getTaskConfig('priority');
-      if($priority === false) {
+      $priorities = $this->getTaskConfig('priorities');
+      if($priorities === false) {
         $priority = Cm_Mongo_Model_Job::DEFAULT_PRIORITY;
+      } else {
+        $priorities = preg_split('/\s*,\s*/', $priorities, null, PREG_SPLIT_NO_EMPTY);
+        $priority = $priorities[0];
       }
       $this->setData('priority', (int) $priority);
     }
-  }
-}
 
+    // Ensure that status updates are consistent
+    if($this->isObjectNew() === false && $this->dataHasChangedFor('status')) {
+      $this->setAdditionalSaveCriteria(array('status' => $this->getOrigData('status')));
+    }
+  }
+
+  protected function _afterSave()
+  {
+    // Throw errors if a status update fails
+    if($this->getLastUpdateStatus() === false) {
+      throw new Exception("Failed to updated job status to {$this->getStatus()} ({$this->getId()}");
+    }
+  }
+
+}

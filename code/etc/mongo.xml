@@ -16,11 +16,10 @@
     <!-- General-purpose job queue -->
     <job>
       <collection>job_queue</collection>
-      <autoincrement/>
       <created_timestamp/>
       <updated_timestamp/>
       <fields>
-        <_id>            <type>int</type></_id>
+        <_id>            <type>MongoId</type></_id>
         <task/>
         <job_data>       <type>hash</type></job_data>
         <status/>
