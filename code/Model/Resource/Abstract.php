@@ -453,7 +453,11 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         }
         $data = $ops;
       }
-      $object->setLastUpdateStatus($this->update($object, $data, array('upsert' => TRUE)));
+      $result = $this->update($object, $data, array('upsert' => TRUE));
+      if($result instanceof MongoId) {
+        $object->setData('_id', $result);
+      }
+      $object->setLastUpdateStatus(!!$result);
     }
     
     // Clear pending operations
