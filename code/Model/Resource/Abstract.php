@@ -340,6 +340,8 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
 
     $this->_beforeSave($object);
 
+    $object->setLastUpdateStatus(NULL);
+
     // TRUE, do insert
     if($object->isObjectNew())
     {
@@ -387,7 +389,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       
       // Execute any pending operations
       if($ops) {
-        $this->update($object, $ops);
+        $object->setLastUpdateStatus($this->update($object, $ops));
       }
     }
 
@@ -427,7 +429,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       }
 
       if($ops) {
-        $this->update($object, $ops);
+        $object->setLastUpdateStatus($this->update($object, $ops));
       }
     }
 
@@ -449,7 +451,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       else {
         $ops['$set'] = $data;
       }
-      $this->update($object, $ops, array('upsert' => TRUE));
+      $object->setLastUpdateStatus($this->update($object, $ops, array('upsert' => TRUE)));
     }
     
     // Clear pending operations

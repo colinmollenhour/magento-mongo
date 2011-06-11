@@ -20,6 +20,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
   protected $_operations;
   protected $_additionalSaveCriteria;
   protected $_additionalSaveOptions;
+  protected $_lastUpdateStatus;
 
   /** @var boolean  If enabled, a load will add the item to cache */
   protected $_isCacheEnabled = FALSE;
@@ -534,6 +535,24 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
   public function getAdditionalSaveOptions()
   {
     return $this->_additionalSaveOptions;
+  }
+
+  /**
+   * @param null|bool $status
+   * @return Cm_Mongo_Model_Abstract
+   */
+  public function setLastUpdateStatus($status)
+  {
+    $this->_lastUpdateStatus = $status;
+    return $this;
+  }
+
+  /**
+   * @return null|bool
+   */
+  public function getLastUpdateStatus()
+  {
+    return $this->_lastUpdateStatus;
   }
 
   /**
