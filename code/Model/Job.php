@@ -332,7 +332,7 @@ class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
   {
     // Throw errors if a status update fails
     if($this->getLastUpdateStatus() === false) {
-      throw new Exception("Failed to updated job status to {$this->getStatus()} ({$this->getId()}");
+      throw new Exception("Failed to update job status to {$this->getStatus()} ({$this->getId()})");
     }
   }
 
