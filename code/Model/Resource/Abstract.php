@@ -585,7 +585,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       // Skip fields that have not changed on updates
       if(
         $forUpdate &&
-        ! $object->dataHasChangedFor($field) &&
+        ( ! $object->hasData($field) || $rawValue === $object->getOrigData($field)) &&
         ! $rawValue instanceof Cm_Mongo_Model_Abstract &&
         ! $rawValue instanceof Cm_Mongo_Model_Resource_Collection_Embedded
       ) {
