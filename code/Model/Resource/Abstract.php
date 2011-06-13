@@ -657,6 +657,17 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Update a document
    *
+   * Arguments can take the following forms:
+   *
+   * $criteria, $update, $options
+   * $criteria, $operation, $keysValues, $options
+   * $criteria, $operation, $key, $value, $options
+   *
+   * And these less-preferred forms:
+   * $criteria, $update, NULL, $options
+   * $criteria, $update, NULL, NULL, $options
+   * $criteria, $operation, $keysValues, NULL, $options
+   *
    * @param array|Cm_Mongo_Model_Abstract $criteria  If an object, the object _id will be used as the criteria
    * @param array|string $update
    * @param array|string|null $key
@@ -666,6 +677,13 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    */
   public function update($criteria, $update, $key = NULL, $value = NULL, $options = array())
   {
+    // Compress number of arguments required
+    if(is_array($update) && is_array($key)) {
+      $options = $key;
+    } else if((is_array($update) || is_array($key)) && is_array($value)) {
+      $options = $value;
+    }
+
     // Prepare criteria
     if($criteria instanceof Cm_Mongo_Model_Abstract) {
       $idQuery = array($criteria->getIdFieldName() => $criteria->getId());
