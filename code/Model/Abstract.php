@@ -1,6 +1,8 @@
 <?php
 /**
  * Abstract model class, objectifies a document or embedded document.
+ *
+ * @method Cm_Mongo_Model_Resource_Abstract getResource()
  */
 abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
 {
@@ -24,16 +26,6 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
 
   /** @var boolean  If enabled, a load will add the item to cache */
   protected $_isCacheEnabled = FALSE;
-
-  /**
-   * Get the resource instance. (overridden to improve IDE chaining)
-   *
-   * @return Cm_Mongo_Model_Resource_Abstract
-   */
-  public function getResource()
-  {
-    return $this->_getResource();
-  }
 
   /**
    * Get or set the _isObjectNew flag. Defaults to TRUE.

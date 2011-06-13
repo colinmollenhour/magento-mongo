@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * @see Cm_Mongo_Model_Job
+ */
 class Cm_Mongo_Model_Mongo_Job extends Cm_Mongo_Model_Resource_Abstract
 {
   
@@ -13,7 +15,8 @@ class Cm_Mongo_Model_Mongo_Job extends Cm_Mongo_Model_Resource_Abstract
    */
   public function getNextJob()
   {
-    $data = $this->_getWriteAdapter()->findAndModify($this->_collectionName, array(
+    $result = $this->_getWriteAdapter()->command(array(
+        'findAndModify' => $this->_collectionName,
         'query'  => array(
           'status'     => Cm_Mongo_Model_Job::STATUS_READY,
           'execute_at' => array('$lte' => new MongoDate),
@@ -23,21 +26,22 @@ class Cm_Mongo_Model_Mongo_Job extends Cm_Mongo_Model_Resource_Abstract
           'execute_at' => 1,
         ),
         'update' => array(
-          'status'     => Cm_Mongo_Model_Job::STATUS_RUNNING,
-          'pid'        => getmypid(),
+          '$set' => array(
+            'status'     => Cm_Mongo_Model_Job::STATUS_RUNNING,
+            'pid'        => getmypid(),
+          ),
         ),
         'fields' => $this->getDefaultLoadFields(new Varien_Object),
         'new'    => true,
     ));
-
-    if($data)
-    {
-      $job = Mage::getModel('t3/job');
-      $this->hydrate($job, $data, TRUE);
-      return $job;
+    if( empty($result['ok'])) {
+      return FALSE;
     }
-    
-    return FALSE;
+
+    $data = $result['value'];
+    $job = Mage::getModel('mongo/job');
+    $this->hydrate($job, $data, TRUE);
+    return $job;
   }
 
   /**
@@ -49,26 +53,29 @@ class Cm_Mongo_Model_Mongo_Job extends Cm_Mongo_Model_Resource_Abstract
    */
   public function reloadJobForRunning(Cm_Mongo_Model_Job $job)
   {
-    $data = $this->_getWriteAdapter()->findAndModify($this->_collectionName, array(
+    $result = $this->_getWriteAdapter()->command(array(
+        'findAndModify' => $this->_collectionName,
         'query'  => array(
           '_id'        => $job->getId(),
           'status'     => Cm_Mongo_Model_Job::STATUS_READY,
         ),
         'update' => array(
-          'status'     => Cm_Mongo_Model_Job::STATUS_RUNNING,
-          'pid'        => getmypid(),
+          '$set' => array(
+            'status'     => Cm_Mongo_Model_Job::STATUS_RUNNING,
+            'pid'        => getmypid(),
+          ),
         ),
         'fields' => $this->getDefaultLoadFields(new Varien_Object()),
         'new'    => true,
     ));
 
-    if($data)
-    {
-      $this->hydrate($job, $data, TRUE);
-      return TRUE;
+    if( empty($result['ok'])) {
+      return FALSE;
     }
-    
-    return FALSE;
+
+    $data = $result['value'];
+    $this->hydrate($job, $data, TRUE);
+    return TRUE;
   }
 
   public function getDefaultLoadFields($object)
