@@ -141,12 +141,12 @@ class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
     $retries = (int) $this->getRetries();
 
     // Update the execute_at time
-    $time = time();
+    $time = new MongoDate;
     $schedule = (string) $this->getTaskConfig('retry_schedule');
     if($schedule) {
       $schedule = preg_split('/\s*,\s*/', $schedule, null, PREG_SPLIT_NO_EMPTY);
       $modifier = isset($schedule[$retries]) ? $schedule[$retries] : end($schedule);
-      $time = strtotime($modifier, $time);
+      $time = new MongoDate(strtotime($modifier, $time->sec));
     }
 
     // Update the priority unless it was already set explicitly

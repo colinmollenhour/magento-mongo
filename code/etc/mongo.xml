@@ -27,7 +27,7 @@
         <pid>            <type>int</type></pid>
         <retries>        <type>int</type></retries>
         <priority>       <type>int</type></priority>
-        <execute_at>     <type>int</type></execute_at>
+        <execute_at>     <type>MongoDate</type></execute_at>
         <error_log>      <type>set</type></error_log>
         <other_data>     <type>hash</type></other_data>
       </fields>

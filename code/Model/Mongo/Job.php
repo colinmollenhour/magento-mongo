@@ -16,7 +16,7 @@ class Cm_Mongo_Model_Mongo_Job extends Cm_Mongo_Model_Resource_Abstract
     $data = $this->_getWriteAdapter()->findAndModify($this->_collectionName, array(
         'query'  => array(
           'status'     => Cm_Mongo_Model_Job::STATUS_READY,
-          'execute_at' => array('$lte' => time()),
+          'execute_at' => array('$lte' => new MongoDate),
         ),
         'sort'   => array(
           'priority'   => 1,

@@ -11,7 +11,7 @@ class Cm_Mongo_Helper_Queue extends Mage_Core_Helper_Abstract
    * @param string $task
    * @param array $data
    * @param int $priority  Optional override for priority
-   * @param int $executeAt   Optional timestamp specifying when to be run
+   * @param int|MongoDate $executeAt   Optional timestamp specifying when to be run
    * @return Cm_Mongo_Model_Job
    */
   public function addJob($task, $data, $priority = null, $executeAt = null)
@@ -27,7 +27,7 @@ class Cm_Mongo_Helper_Queue extends Mage_Core_Helper_Abstract
    * @param string $task
    * @param array $data
    * @param int $priority  Optional override for priority
-   * @param int $executeAt   Optional timestamp specifying when to be run
+   * @param int|MongoDate $executeAt   Optional timestamp specifying when to be run
    * @return Cm_Mongo_Model_Job
    */
   public function addJobUnique($task, $data, $priority = null, $executeAt = null)
@@ -39,6 +39,28 @@ class Cm_Mongo_Helper_Queue extends Mage_Core_Helper_Abstract
         'task'     => $task,
         'job_data' => $data,
     ));
+    $job->save();
+    return $job;
+  }
+
+  /**
+   * Add a job to the queue in a disabled state with a known _id, to be used in two-phase commits
+   *
+   * Enable the jobs using Mage::getResourceSingleton('mongo/job')->enableJobs($query);
+   *
+   * @param MongoId $id
+   * @param string $task
+   * @param array $data
+   * @param int $priority  Optional override for priority
+   * @param int|MongoDate $executeAt   Optional timestamp specifying when to be run
+   * @return Cm_Mongo_Model_Job
+   */
+  public function addJobIdempotent(MongoId $id, $task, $data, $priority = null, $executeAt = null)
+  {
+    $job = $this->_initNewJob($task, $data, $priority, $executeAt);
+    $job->setId($id);
+    $job->setStatus(Cm_Mongo_Model_Job::STATUS_DISABLED);
+    $job->isObjectNew(NULL); // force upsert
     $job->save();
     return $job;
   }
@@ -101,7 +123,7 @@ class Cm_Mongo_Helper_Queue extends Mage_Core_Helper_Abstract
    * @param string $task
    * @param array $data
    * @param int $priority  Optional override for priority
-   * @param int $executeAt   Optional timestamp specifying when to be run
+   * @param int|MongoDate $executeAt   Optional timestamp specifying when to be run
    * @return Cm_Mongo_Model_Job
    */
   protected function _initNewJob($task, $data, $priority = null, $executeAt = null)
@@ -111,7 +133,7 @@ class Cm_Mongo_Helper_Queue extends Mage_Core_Helper_Abstract
         'task'       => $task,
         'job_data'   => $data,
         'priority'   => $priority,
-        'execute_at' => $executeAt === NULL ? time() : $executeAt,
+        'execute_at' => $executeAt === null ? new MongoDate : $executeAt,
     ));
     return $job;
   }
