@@ -81,4 +81,24 @@ class Cm_Mongo_Profiler
     return self::$_timers;
   }
 
+  /**
+   * Print (or get) all timers
+   *
+   * @static
+   * @param bool $return
+   * @return string
+   */
+  public static function debug($return = false)
+  {
+    if($return) {
+      ob_start();
+    }
+    foreach(self::$_timers as $name => $timer) {
+      printf("%d (%1.4fms): %s\n", $timer['count'], $timer['sum'], $name);
+    }
+    if($return) {
+      return ob_get_clean();
+    }
+  }
+
 }
