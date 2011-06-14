@@ -14,6 +14,7 @@ class Cm_Mongo_Helper_Data extends Mage_Core_Helper_Abstract
     $renderers = array(
       'datestring' => 'mongo/adminhtml_widget_grid_column_renderer_datestring',
       'datetime'   => 'mongo/adminhtml_widget_grid_column_renderer_datetime',
+      'implode'    => 'mongo/adminhtml_widget_grid_column_renderer_implode',
     );
     if($key !== NULL) {
       return isset($renderers[$key]) ? $renderers[$key] : NULL;
