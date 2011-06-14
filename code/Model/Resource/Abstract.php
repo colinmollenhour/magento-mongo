@@ -481,9 +481,9 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   {
     if($object->getId() !== NULL) {
       $this->_beforeDelete($object);
-      $this->_getWriteCollection()->remove(
+      $this->remove(
         array($this->getIdFieldName() => $object->getId()),
-        array('justOne' => TRUE, 'safe' => TRUE)
+        array('justOne' => TRUE)
       );
       $this->_afterDelete($object);
     }
@@ -722,6 +722,24 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
 
     // Execute
     return $this->_getWriteCollection()->update_safe($criteria, $update, $options);
+  }
+
+  /**
+   * Remove documents.
+   *
+   * Use "justOne" option to remove just one, defaults to multiple.
+   *
+   * @throws Exception
+   * @param array $criteria
+   * @param array $options
+   * @return bool|int
+   */
+  public function remove(array $criteria, $options = array())
+  {
+    if( ! $criteria) {
+      throw new Exception('Removal of all documents not allowed with helper.');
+    }
+    return $this->_getWriteCollection()->remove_safe($criteria, $options);
   }
 
   /**
