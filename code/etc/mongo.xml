@@ -30,6 +30,8 @@
         <execute_at>     <type>MongoDate</type></execute_at>
         <error_log>      <type>set</type></error_log>
         <other_data>     <type>hash</type></other_data>
+        <created_at>     <type>MongoDate</type></created_at>
+        <updated_at>     <type>MongoDate</type></updated_at>
       </fields>
     </job>
   </mongo>
