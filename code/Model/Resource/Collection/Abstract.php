@@ -729,7 +729,10 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
           $query = array($fieldName => $condition['eq']);
         }
         // Search array for presence of a single value
-        else if( ! is_array($condition['eq']) && $this->getResource()->getFieldType($fieldName) == 'set') {
+        else if(
+          ! is_array($condition['eq']) &&
+          in_array($this->getResource()->getFieldType($fieldName), array('set','referenceSet','embeddedSet'))
+        ) {
           $query = array($fieldName => $condition['eq']);
         }
         // Search for an exact match
