@@ -22,6 +22,13 @@ class Cm_Mongo_Model_Type_Tomongo
 
   public function float($mapping, $value)
   {
+    if($mapping->precision) {
+      if($mapping->mode) {
+        return round( (float) $value, (int) $mapping->precision, (int) $mapping->mode);
+      } else {
+        return round( (float) $value, (int) $mapping->precision);
+      }
+    }
     return (float) $value;
   }
 
