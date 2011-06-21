@@ -682,32 +682,10 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       elseif (isset($condition['from']) || isset($condition['to'])) {
         $query = array();
         if (isset($condition['from'])) {
-          if (empty($condition['date'])) {
-            if ( empty($condition['datetime'])) {
-              $from = $condition['from'];
-            }
-            else {
-              $from = new MongoDate(strtotime($condition['from']));
-            }
-          }
-          else {
-            $from = new MongoDate(strtotime($condition['from'].' 00:00:00'));
-          }
-          $query['$gte'] = $this->castFieldValue($fieldName, $from);
+          $query['$gte'] = $this->castFieldValue($fieldName, $condition['from']);
         }
         if (isset($condition['to'])) {
-          if (empty($condition['date'])) {
-            if ( empty($condition['datetime'])) {
-              $to = $condition['to'];
-            }
-            else {
-              $to = new MongoDate(strtotime($condition['to']));
-            }
-          }
-          else {
-            $to = new MongoDate(strtotime($condition['to'].' 00:00:00'));
-          }
-          $query['$lte'] = $this->castFieldValue($fieldName, $to);
+          $query['$lte'] = $this->castFieldValue($fieldName, $condition['to']);
         }
         $query = array($fieldName => $query);
       }
