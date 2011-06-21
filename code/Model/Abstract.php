@@ -570,7 +570,9 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
   
   /**
    * Initialize object original data
-   * Overridden so that it resets the state of hasDataChanges when called without arguments
+   * 
+   * Overridden so that when called without arguments it resets the state of hasDataChanges and calls
+   *   setOrigData on the embedded objects
    *
    * @param string $key
    * @param mixed $data
@@ -580,6 +582,15 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
   {
     if (is_null($key)) {
       $this->_origData = $this->_data;
+      if($this->_children) {
+        foreach($this->_children as $object) {
+          if($object instanceof Cm_Mongo_Model_Abstract) {
+            $object->setOrigData();
+          } else if($object instanceof Cm_Mongo_Model_Resource_Collection_Embedded) {
+            $object->walk('setOrigData');
+          }
+        }
+      }
       $this->_hasDataChanges = FALSE;
     } else {
       $this->_origData[$key] = $data;
