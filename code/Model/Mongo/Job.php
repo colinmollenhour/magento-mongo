@@ -45,7 +45,7 @@ class Cm_Mongo_Model_Mongo_Job extends Cm_Mongo_Model_Resource_Abstract
   }
 
   /**
-   * Attemps to reload a job using findAndModify so as to safely reserve the job
+   * Attempts to reload a job using findAndModify so as to safely reserve the job
    * to be run by the current process
    *
    * @param Cm_Mongo_Model_Job $job
@@ -76,6 +76,31 @@ class Cm_Mongo_Model_Mongo_Job extends Cm_Mongo_Model_Resource_Abstract
     $data = $result['value'];
     $this->hydrate($job, $data, TRUE);
     return TRUE;
+  }
+
+  /**
+   * @param array $criteria
+   * @param array $update
+   * @return bool
+   */
+  public function pauseJobs($criteria, $update = array())
+  {
+    $criteria['status'] = Cm_Mongo_Model_Job::STATUS_READY;
+    $criteria['$atomic'] = TRUE;
+    $update['status'] = Cm_Mongo_Model_Job::STATUS_DISABLED;
+    return $this->update($criteria, $update, array('multiple' => TRUE));
+  }
+
+  /**
+   * @param array $criteria
+   * @param array $update
+   * @return bool
+   */
+  public function resumeJobs($criteria, $update = array())
+  {
+    $criteria['status'] = Cm_Mongo_Model_Job::STATUS_DISABLED;
+    $update['status'] = Cm_Mongo_Model_Job::STATUS_READY;
+    return $this->update($criteria, $update, array('multiple' => TRUE));
   }
 
   public function getDefaultLoadFields($object)
