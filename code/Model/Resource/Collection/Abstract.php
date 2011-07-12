@@ -662,12 +662,12 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     }
 
     // Process sub-queries of or and nor
-    elseif ($fieldName == '$or' || $fieldName == '$nor') {
+    elseif ($fieldName == 'or' || $fieldName == 'nor') {
       $query = array();
-      foreach($condition as $_fieldName => $_condition) {
-        $query = array_merge($query, $this->_getCondition($_fieldName, $_condition));
+      foreach($condition as $_condition) {
+        $query[] = $this->_getCondition($_condition);
       }
-      $query = array($fieldName => $query);
+      $query = array('$or' => $query);
     }
 
     // Process special condition keys
