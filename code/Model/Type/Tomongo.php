@@ -103,7 +103,7 @@ class Cm_Mongo_Model_Type_Tomongo
     }
     else if(is_int($value)) {
       $date = new Zend_Date($value);
-      return $value->toString(Varien_Date::DATE_INTERNAL_FORMAT);
+      return $date->toString(Varien_Date::DATE_INTERNAL_FORMAT);
     }
     else if($value instanceof MongoDate) {
       $date = new Zend_Date($value->sec);
