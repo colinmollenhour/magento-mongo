@@ -639,11 +639,16 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       }
     }
 
+    // When using third argument, convert to two arguments
+    else if ( $_condition !== NULL) {
+      $query = $this->_getCondition($fieldName, array($condition => $_condition));
+    }
+
     // Handle multi-field filters with field names like firstname|lastname using $or
     else if (strpos($fieldName, '|')) {
       $query = array();
       foreach(explode('|', $fieldName) as $_fieldName) {
-        $query[] = $this->_getCondition($_fieldName, $condition, $_condition);
+        $query[] = $this->_getCondition($_fieldName, array($condition => $_condition));
       }
       $query = array('$or' => $query);
     }
@@ -656,18 +661,32 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       $query = array($reference => array('$in' => $collection->getAllIds(TRUE)));
     }
 
-    // When using third argument, convert to two arguments
-    else if ( $_condition !== NULL) {
-      $query = $this->_getCondition($fieldName, array($condition => $_condition));
-    }
-
     // Process sub-queries of or and nor
-    elseif ($fieldName == 'or' || $fieldName == 'nor') {
+    else if ($fieldName == 'or' || $fieldName == 'nor') {
       $query = array();
       foreach($condition as $_condition) {
         $query[] = $this->_getCondition($_condition);
       }
       $query = array('$or' => $query);
+    }
+
+    // Process sub-queries of $and operator
+    else if ($fieldName == 'and') {
+      $query = array();
+      foreach($condition as $_condition) {
+        $query[] = $this->_getCondition($_condition);
+      }
+      $query = array('$and' => $query);
+    }
+
+    // Process where (javascript) queries
+    else if ($fieldName == 'where') {
+      $query = array('$where' => $condition);
+    }
+
+    // Bypass all processing if field name is an operator
+    else if (substr($fieldName,0,1) == '$') {
+      $query = array($fieldName => $condition);
     }
 
     // Process special condition keys
@@ -794,13 +813,13 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
 
       // Assume an "equals" query
       else {
-        $query = $this->_getCondition($fieldName, 'eq', $condition);
+        $query = $this->_getCondition($fieldName, array('eq' => $condition));
       }
     }
 
     // Condition is scalar
     else {
-      $query = $this->_getCondition($fieldName, 'eq', $condition);
+      $query = $this->_getCondition($fieldName, array('eq' => $condition));
     }
 
     return $query;
