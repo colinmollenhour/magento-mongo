@@ -648,7 +648,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     else if (strpos($fieldName, '|')) {
       $query = array();
       foreach(explode('|', $fieldName) as $_fieldName) {
-        $query[] = $this->_getCondition($_fieldName, array($condition => $_condition));
+        $query[] = $this->_getCondition($_fieldName, $condition, $_condition);
       }
       $query = array('$or' => $query);
     }
