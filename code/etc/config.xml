@@ -135,4 +135,14 @@
     </system>
   </default>
 
+  <!-- Extend the default ecomdev_phpunit/fixture model for "collections" section in fixtures -->
+  <!-- Currently, you must add <depends><EcomDev_PHPUnit/></depends> to Cm_Mongo.xml for this to take effect. -->
+  <phpunit>
+    <suite>
+      <fixture>
+        <model>mongo/fixture</model>
+      </fixture>
+    </suite>
+  </phpunit>
+
 </config>
