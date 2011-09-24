@@ -24,7 +24,8 @@ class Cm_Mongo_Model_Resource_Collection_Embedded extends Varien_Data_Collection
   }
 
   /**
-   * Override addItem to not attempt to use item id as key, and to set item root and path
+   * Override addItem to not attempt to use item id as key, and to set item root and path.
+   * Also to ensure indexing on strings for safety with MongoId
    *
    * @param Varien_Object $item
    * @return Cm_Mongo_Model_Resource_Collection_Embedded
@@ -33,8 +34,31 @@ class Cm_Mongo_Model_Resource_Collection_Embedded extends Varien_Data_Collection
   {
     $index = count($this->_items);
     $item->_setEmbeddedIn($this->_root, $this->_path.'.'.$index);
-    $this->_items[] = $item;
+    $itemId = $item->getIdFieldName() ? $this->_getItemKey($item->getId()) : NULL;
+
+    if ($itemId !== NULL) {
+      if (isset($this->_items[$itemId])) {
+        throw new Exception('Item ('.get_class($item).') with the same id "'.$item->getId().'" already exist');
+      }
+      $this->_items[$itemId] = $item;
+    } else {
+      $this->_items[] = $item;
+    }
     return $this;
+  }
+
+  /**
+   * Get a key for an item
+   *
+   * @param mixed $id
+   * @return mixed
+   */
+  protected function _getItemKey($id)
+  {
+    if($id instanceof MongoId) {
+      return (string) $id;
+    }
+    return $id;
   }
 
   /**
