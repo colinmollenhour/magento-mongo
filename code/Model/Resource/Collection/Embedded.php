@@ -48,6 +48,21 @@ class Cm_Mongo_Model_Resource_Collection_Embedded extends Varien_Data_Collection
   }
 
   /**
+   * Remove item from collection by item key
+   *
+   * @param   mixed $key
+   * @return  Varien_Data_Collection
+   */
+  public function removeItemByKey($key)
+  {
+    $key = $this->_getItemKey($key);
+    if (isset($this->_items[$key])) {
+      unset($this->_items[$key]);
+    }
+    return $this;
+  }
+
+  /**
    * Get a key for an item
    *
    * @param mixed $id
