@@ -66,14 +66,16 @@ class Cm_Mongo_Model_Enum
    */
   public function toOptionHash($first = NULL)
   {
-    $values = array();
+    $options = array();
     if($first !== NULL) {
       $first[''] = $first;
     }
-    foreach($this->getValues() as $key => $data) {
-      $values[$key] = $data['label'];
+    $values = $this->getValues();
+    asort($values);
+    foreach($values as $key => $data) {
+      $options[$key] = $data['label'];
     }
-    return $values;
+    return $options;
   }
 
   /*
@@ -85,11 +87,13 @@ class Cm_Mongo_Model_Enum
    */
   public function getAllOptions()
   {
-    $values = array();
-    foreach($this->getValues() as $key => $data) {
-      $values[] = array('value' => $key, 'label' => $data['label']);
+    $options = array();
+    $values = $this->getValues();
+    asort($values);
+    foreach($values as $key => $data) {
+      $options[] = array('value' => $key, 'label' => $data['label']);
     }
-    return $values;
+    return $options;
   }
 
   /**
