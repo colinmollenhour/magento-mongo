@@ -622,16 +622,21 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         else {
           $items = (array) $rawValue;
         }
+        $index = 0;
         foreach($items as $item) {
           if($item instanceof Cm_Mongo_Model_Abstract) {
-            $value[] = $item->getResource()->dehydrate($item, $forUpdate);
+            $_value = $item->getResource()->dehydrate($item, $forUpdate);
           }
           else if($item instanceof Varien_Object) {
-            $value[] = $item->getData();
+            $_value = $item->getData();
           }
           else {
-            $value[] = (array) $item;
+            $_value = (array) $item;
           }
+          if( ! $forUpdate || $_value) {
+            $value[$index] = $_value;
+          }
+          $index++;
         }
         if($forUpdate && empty($value)) {
           continue;
@@ -833,7 +838,23 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
           $origData = $origData->getOrigData();
         }
         else if($origData instanceof Cm_Mongo_Model_Resource_Collection_Embedded) {
-          $origData = $origData->walk('getOrigData');
+          $index = 0;
+          foreach($origData as $item) {
+            if(isset($value[$index])) {
+              $itemOrigData = $item->getOrigData();
+              if($itemOrigData) {
+                $result2 = $this->_flattenUpdateData($itemOrigData, $value[$index], $key.'.'.$index.'.');
+                foreach($result2 as $key2 => $value2) {
+                  $result[$path.$key2] = $value2;
+                }
+              }
+              else {
+                $result[$path.$key.'.'.$index] = $value[$index];
+              }
+            }
+            $index++;
+          }
+          continue;
         }
         $result2 = $this->_flattenUpdateData($origData, $value, $key.'.');
         foreach($result2 as $key2 => $value2) {
