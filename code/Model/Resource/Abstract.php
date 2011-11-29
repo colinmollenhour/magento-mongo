@@ -320,7 +320,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   {
     foreach($query as $field => $value) {
       if($field{0} != '$' && ! is_array($value)) {
-        $query[$field] = $this->castToMongo($field, $value);
+        $query[$field] = $this->castToMongoNested($field, $value);
       }
     }
     return $this->_getReadCollection()->findOne($query, $fields);
@@ -779,6 +779,27 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     $mapping = $this->getFieldMapping($field);
     $type = $this->getFieldType($field);
     return $this->getPhpToMongoConverter()->$type($mapping, $value);
+  }
+
+  /**
+   * Cast a value to the proper type, but with support for nested field names.
+   *
+   * @param string $field
+   * @param mixed $value
+   * @param string $delimiter
+   * @return mixed
+   */
+  public function castToMongoNested($field, $value, $delimiter = '.')
+  {
+    $fields = explode($delimiter, $field, 2);
+    $mapping = $this->getFieldMappings()->{$fields[0]};
+    if($mapping && count($fields) == 1) {
+      return $this->castToMongo($fields[0], $value);
+    }
+    if( ! $mapping || ! in_array($mapping->type, array('embedded','embeddedSet'))) {
+      return $value;
+    }
+    return $this->getFieldResource($fields[0])->castToMongoNested($fields[1], $value, $delimiter);
   }
 
   /**
