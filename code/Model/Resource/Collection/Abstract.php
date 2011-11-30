@@ -450,7 +450,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   /**
    * Add cursor order
    *
-   * @param   string $field
+   * @param   string|array $field
    * @param   string $direction
    * @return  Cm_Mongo_Model_Resource_Collection_Abstract
    */
@@ -462,7 +462,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   /**
    * Add cursor order to the beginning
    *
-   * @param string $field
+   * @param string|array $field
    * @param string $direction
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
@@ -843,13 +843,28 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   /**
    * Add sort order to the end or to the beginning
    *
-   * @param string $field
+   * @param string|array $field
    * @param string $direction
    * @param bool $unshift
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
   protected function _setOrder($field, $direction, $unshift = false)
   {
+    if(is_array($field)) {
+      foreach($field as $key => $value) {
+        if(is_int($key)) {
+          $_field = $value;
+          $_direction = $direction;
+        }
+        else {
+          $_field = $key;
+          $_direction = $value;
+        }
+        $this->_setOrder($_field, $_direction, $unshift);
+      }
+      return $this;
+    }
+
     if( ! ctype_digit($direction)) {
       $direction = (strtoupper($direction) == self::SORT_ORDER_ASC) ? Mongo_Collection::ASC : Mongo_Collection::DESC;
     }
