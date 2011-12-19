@@ -15,13 +15,14 @@ class Cm_Mongo_Model_Enum
   /**
    * @param  string $key
    * @param  array $data
-   * @return void
+   * @return Cm_Mongo_Model_Enum
    */
   public function addDefaultValue($key, $data)
   {
     $defaults = $this->getDefaults();
     $defaults[$key] = $data;
     $this->setDefaults($defaults);
+    return $this;
   }
 
   /**
