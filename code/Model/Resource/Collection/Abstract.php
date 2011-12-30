@@ -18,7 +18,11 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   /** The mongo collection instance used as a query object
    * @var Mongo_Collection */
   protected $_query;
-  
+
+  /** Indicates if collection is being iterated using getNextItem
+   * @var bool */
+  protected $_iterating = FALSE;
+
   /** Storage for the raw data
    * @var array */
   protected $_data;
@@ -189,14 +193,41 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    */
   public function addFieldToResults($field, $include = 1)
   {
+    $include = (int) $include;
     if( ! is_array($field)) {
       $field = array($field => $include);
     }
-    $include = (int) $include;
+    else if($field == array_values($field)) {
+      $field = array_fill_keys($field, $include);
+    }
 
-    $this->_query->fields($field, $include);
+    foreach($field as $_field => $_include) {
+      if( strpos($_field, '->') ) {
+        list($fieldA, $fieldB) = explode('->', $_field, 2);
+        $this->addFieldToResults($fieldA, 1);
+        $this->getReferencedCollection($fieldA)->addFieldToResults($fieldB, $_include);
+      }
+      else {
+        $this->_query->fields(array($_field => $_include));
+      }
+    }
 
     return $this;
+  }
+
+  /**
+   * Check if the query already has explicit field includes specified (include and exclude cannot be mixed)
+   *
+   * @return bool
+   */
+  public function hasIncludedFields()
+  {
+    foreach($this->_query->get_option('fields') as $field => $include) {
+      if($include == 1) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
   /**
@@ -309,8 +340,10 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   {
     if(empty($this->_referencedCollections[$field]))
     {
-      $collection = Mage::getSingleton($this->getResource()->getFieldModelName($field))->getCollection();
-      $this->_referencedCollections[$field] = $collection;
+      if( ! ($fieldModelName = $this->getResource()->getFieldModelName($field))) {
+        throw new Exception("Could not get field model for $field");
+      }
+      $this->_referencedCollections[$field] = Mage::getSingleton($fieldModelName)->getCollection();
     }
     return $this->_referencedCollections[$field];
   }
@@ -512,6 +545,11 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    */
   public function getData()
   {
+    if ($this->_iterating)
+    {
+      throw new Exception('Cannot getData while iterating.');
+    }
+
     if ($this->_data === null)
     {
       $this->_beforeLoad();
@@ -521,6 +559,32 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
       $this->_afterLoadData();
     }
     return $this->_data;
+  }
+
+  /**
+   * This method cannot be used with load(), getData() or the default iterator
+   * _beforeLoad and _afterLoadData are not called
+   *
+   * @return null|Cm_Mongo_Model_Abstract
+   */
+  public function getNextItem()
+  {
+    if ( ! $this->_iterating) {
+      if ($this->isLoaded() || $this->_data) {
+        throw new Exception('Cannot use getNextItem after collection is loaded.');
+      }
+      $this->_renderLimit();
+      $this->_renderFields();
+      $this->_iterating = TRUE;
+    }
+    $data = $this->_query->getNext();
+    if( ! $data) {
+      $this->_iterating = FALSE;
+      return NULL;
+    }
+    $item = $this->getNewEmptyItem();
+    $this->getResource()->hydrate($item, $data, TRUE);
+    return $item;
   }
 
   /**
@@ -560,6 +624,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   {
     $this->getQuery()->reset();
     $this->_setIsLoaded(false);
+    $this->_iterating = FALSE;
     $this->_items = array();
     $this->_data = null;
     $this->_preloadFields = array();
