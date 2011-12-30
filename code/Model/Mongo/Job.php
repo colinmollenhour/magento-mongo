@@ -15,7 +15,7 @@ class Cm_Mongo_Model_Mongo_Job extends Cm_Mongo_Model_Resource_Abstract
    */
   public function getNextJob()
   {
-    $result = $this->_getWriteAdapter()->command(array(
+    $result = $this->_getWriteAdapter()->command_safe(array(
         'findAndModify' => $this->_collectionName,
         'query'  => array(
           'status'     => Cm_Mongo_Model_Job::STATUS_READY,
@@ -34,7 +34,7 @@ class Cm_Mongo_Model_Mongo_Job extends Cm_Mongo_Model_Resource_Abstract
         'fields' => $this->getDefaultLoadFields(new Varien_Object),
         'new'    => true,
     ));
-    if( empty($result['ok'])) {
+    if( empty($result['value'])) {
       return FALSE;
     }
 

@@ -108,7 +108,7 @@ class Cm_Mongo_Helper_Queue extends Mage_Core_Helper_Abstract
     }
     for($i = 0; ( ! $limit || $i < $limit) && ( ! $stopTime || time() < $stopTime); $i++)
     {
-      $job = Mage::getResourceSingleton('mongo/job')->getNextJob();
+      $job = Mage::getResourceSingleton('mongo/job')->getNextJob(); /* @var $job Cm_Mongo_Model_Job */
       if( ! $job) {
         break;
       }
