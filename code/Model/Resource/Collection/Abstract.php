@@ -666,6 +666,42 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
     return $this->_toOptionHash('_id', 'name');
   }
 
+  ////////////////////////////////////////////
+  /// Aggregation Framework (MongoDb 2.1+) ///
+  ////////////////////////////////////////////
+
+  /**
+   * @param $collection
+   * @return \Cm_Mongo_Model_Pipeline
+   */
+  public function aggregate($collection = NULL)
+  {
+    $collection = $collection ?: $this->getCollectionName();
+    $pipeline = Mage::getModel('mongo/pipeline', array($this->_conn, $collection));
+    return $pipeline;
+  }
+
+  /**
+   * @param Cm_Mongo_Model_Pipeline $pipeline
+   * @return  Cm_Mongo_Model_Resource_Collection_Abstract
+   */
+  public function loadAggregate(Cm_Mongo_Model_Pipeline $pipeline)
+  {
+    $this->_data = $pipeline->execute();
+    return $this->load();
+  }
+
+  /**
+   * @param Cm_Mongo_Model_Pipeline $pipeline
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   */
+  public function saveAggregate(Cm_Mongo_Model_Pipeline $pipeline)
+  {
+    $pipeline->out($this->getCollectionName());
+    $pipeline->execute();
+    return $this;
+  }
+
   /**
    * Before load action
    */

@@ -7,6 +7,7 @@
         <Cm_Mongo>
             <active>true</active>
             <codePool>community</codePool>
+            <depends><EcomDev_PHPUnit /></depends>
         </Cm_Mongo>
     </modules>
 </config>
