@@ -502,6 +502,18 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
   }
 
   /**
+   * Merge more save criteria with the existing save criteria
+   *
+   * @param array|null $query
+   * @return \Cm_Mongo_Model_Abstract
+   */
+  public function addAdditionalSaveCriteria(array $query = NULL)
+  {
+    $this->_additionalSaveCriteria = array_merge((array)$this->_additionalSaveCriteria, $query);
+    return $this;
+  }
+
+  /**
    * @return array|null
    */
   public function getAdditionalSaveCriteria()
