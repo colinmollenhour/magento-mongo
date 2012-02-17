@@ -43,6 +43,21 @@
  *   </mongo_queue>
  * </config>
  *
+ * Sample job method:
+ *
+ *   public function downloadFooJob(Varien_Object $data, Cm_Mongo_Model_Job $job)
+ *   {
+ *     if( ! $data->getFoo()) {
+ *       $job->denyRetry();
+ *       throw new Exception('No foo!');
+ *     }
+ *     $foo = file_get_contents($foo);
+ *     if( ! $foo) {
+ *       throw new Exception('Could not download foo.');
+ *     }
+ *     // Do something with $foo
+ *   }
+ *
  * Document Fields:
  *   _id
  *   task
@@ -125,28 +140,55 @@ class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
   }
 
   /**
+   * Ensure job will not be retried on failure even if "retries" config has not been reached.
+   *
+   * @return Cm_Mongo_Model_Job
+   */
+  public function denyRetry()
+  {
+    return $this->setCanRetry(FALSE);
+  }
+
+  /**
+   * Check if the job can be scheduled for retry on failure. Can be overridden witth denyRetry().
+   *
    * @return boolean
    */
   public function canRetry()
   {
+    if($this->hasData('can_retry')) {
+      return $this->getCanRetry();
+    }
     $maxRetries = (int) $this->getTaskConfig('retries');
     return $maxRetries && $maxRetries > $this->getRetries();
   }
 
   /**
+   * Schedule a retry based on the parameters or the task configuration.
+   * This is automatically called if an exception is thrown and canRetry() is true.
+   *
+   * @param null|string|int|MongoDate $time  A strtotime compatible string, a unix timestamp or a MongoDate
    * @return Cm_Mongo_Model_Job
    */
-  public function scheduleRetry()
+  public function scheduleRetry($time = NULL)
   {
     $retries = (int) $this->getRetries();
 
     // Update the execute_at time
-    $time = new MongoDate;
-    $schedule = (string) $this->getTaskConfig('retry_schedule');
-    if($schedule) {
-      $schedule = preg_split('/\s*,\s*/', $schedule, null, PREG_SPLIT_NO_EMPTY);
-      $modifier = isset($schedule[$retries]) ? $schedule[$retries] : end($schedule);
-      $time = new MongoDate(strtotime($modifier, $time->sec));
+    if($time === NULL) {
+      $time = new MongoDate;
+      $schedule = (string) $this->getTaskConfig('retry_schedule');
+      if($schedule) {
+        $schedule = preg_split('/\s*,\s*/', $schedule, null, PREG_SPLIT_NO_EMPTY);
+        $modifier = isset($schedule[$retries]) ? $schedule[$retries] : end($schedule);
+        $time = new MongoDate(strtotime($modifier, $time->sec));
+      }
+    }
+    else if(is_string($time)) {
+      $time = new MongoDate(strtotime($time));
+    }
+    else if(is_int($time)) {
+      $time = new MongoDate($time);
     }
 
     // Update the priority unless it was already set explicitly
