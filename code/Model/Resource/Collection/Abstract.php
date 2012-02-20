@@ -505,6 +505,17 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
+   * Unset all applied sort orders
+   *
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   */
+  public function resetOrder()
+  {
+    $this->_query->unset_option('sort');
+    return $this;
+  }
+
+  /**
    * Load data
    *
    * @param  boolean  $printQuery
