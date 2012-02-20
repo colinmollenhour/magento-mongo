@@ -613,23 +613,15 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
   /**
    * When memory usage is important, use this to ensure there are no memory leaks.
    *
+   * Uses _clearReferences and _clearData to be nearly synonymous with new clearInstance() method of Magento 1.6
+   * and may therefore eventually be deprecated.
+   *
    * @return Cm_Mongo_Model_Abstract
    */
   public function reset()
   {
-    $this->setData(array());
-    $this->setOrigData();
-    $this->resetPendingOperations();
-    $this->_hasDataChanges = FALSE;
-    $this->_isObjectNew = TRUE;
-    $this->_references = array();
-    unset($this->_root);
-    if(isset($this->_children)) {
-      foreach($this->_children as $object) {
-        $object->reset();
-      }
-      unset($this->_children);
-    }
+    $this->_clearReferences();
+    $this->_clearData();
     return $this;
   }
 
@@ -724,5 +716,46 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
     }
     return $this->_isCacheEnabled;
   }
-  
+
+  /**
+   * Made final so that the calling parent method is not necessary and therefore cannot be forgotten.
+   * Use __clearReferences instead.
+   */
+  final protected function _clearReferences()
+  {
+    $this->__clearReferences();
+    $this->_references = array();
+    unset($this->_root);
+    if(isset($this->_children)) {
+      foreach($this->_children as $object) {
+        $object->reset();
+      }
+      unset($this->_children);
+    }
+  }
+
+  /**
+   * Made final so that the calling parent method is not necessary and therefore cannot be forgotten.
+   * Use __clearData instead.
+   */
+  final protected function _clearData()
+  {
+    $this->__clearData();
+    $this->setData(array());
+    $this->setOrigData();
+    $this->resetPendingOperations();
+    $this->_hasDataChanges = FALSE;
+    $this->_isObjectNew = TRUE;
+  }
+
+  /**
+   * Use this callback to prevent memory leaks on reset (destroy any possible circular references)
+   */
+  protected function __clearReferences() { }
+
+  /**
+   * Use this callback to prevent memory leaks on reset (destroy any data that could have circular references)
+   */
+  protected function __clearData() { }
+
 }
