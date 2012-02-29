@@ -10,6 +10,8 @@ class Cm_Mongo_Model_Schema extends Varien_Simplexml_Config
 
   /**
    * Load cache on instantiation
+   *
+   * @param null|Varien_Simplexml_Element $sourceData
    */
   public function __construct($sourceData=null)
   {
@@ -20,7 +22,7 @@ class Cm_Mongo_Model_Schema extends Varien_Simplexml_Config
     if (Mage::app()->useCache(self::CACHE_KEY)) {
       $this->setCache(Mage::app()->getCache());
       if ($this->loadCache()) {
-        return $this;
+        return;
       }
     }
 

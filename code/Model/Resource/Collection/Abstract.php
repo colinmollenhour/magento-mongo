@@ -34,7 +34,10 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   /** References to collections that have been preloaded
    * @var array */
   protected $_referencedCollections = array();
-  
+
+  /**
+   * @param null|Cm_Mongo_Model_Resource_Abstract $resource
+   */
   public function __construct($resource = NULL)
   {
     parent::__construct();
@@ -52,7 +55,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
   }
 
   /**
-   * Standard resource collection initalization
+   * Standard resource collection initialization
    *
    * @param string $model
    * @param null $resourceModel
@@ -222,7 +225,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
    */
   public function hasIncludedFields()
   {
-    foreach($this->_query->get_option('fields') as $field => $include) {
+    foreach($this->_query->get_option('fields') as $include) {
       if($include == 1) {
         return TRUE;
       }

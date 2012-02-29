@@ -243,7 +243,11 @@ abstract class Cm_Mongo_Model_Entity
      */
     protected function _processSaveData($saveData)
     {
-        extract($saveData);
+        $object = NULL; // ?
+        $newObject = $saveData['new_Object'];
+        $insert = $saveData['insert'];
+        $update = $saveData['update'];
+        $delete = $saveData['delete'];
         $entityIdField  = $this->getEntityIdField();
         $entityId       = $newObject->getId();
         $condition      = array($entityIdField => $entityId);
@@ -288,7 +292,7 @@ abstract class Cm_Mongo_Model_Entity
         if (!empty($update)) {
             foreach ($update as $attrCode => $value) {
                 $attribute = $this->getAttribute($attrCode);
-                $this->_updateAttribute($newObject, $attribute, $value);
+                //$this->_updateAttribute($newObject, $attribute, $value);
             }
         }
 
@@ -297,7 +301,7 @@ abstract class Cm_Mongo_Model_Entity
          */
         if (!empty($delete)) {
             foreach ($delete as $attrCode => $value) {
-                $this->_deleteAttributes($newObject, $attrCode);
+                //$this->_deleteAttributes($newObject, $attrCode);
             }
         }
 
@@ -370,11 +374,12 @@ abstract class Cm_Mongo_Model_Entity
         return $this;
     }
 
-    /**
-     * Delete entity using current object's data
-     *
-     * @return Mage_Eav_Model_Entity_Abstract
-     */
+  /**
+   * Delete entity using current object's data
+   *
+   * @param $object
+   * @return Mage_Eav_Model_Entity_Abstract
+   */
     public function delete($object)
     {
         if (is_numeric($object)) {

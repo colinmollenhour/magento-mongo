@@ -10,6 +10,10 @@ class Cm_Mongo_Profiler
    */
   static private $_timers = array();
 
+  /**
+   * @static
+   * @param string $timerName
+   */
   public static function reset($timerName)
   {
     self::$_timers[$timerName] = array(
@@ -19,6 +23,10 @@ class Cm_Mongo_Profiler
     );
   }
 
+  /**
+   * @static
+   * @param string $timerName
+   */
   public static function resume($timerName)
   {
     if (empty(self::$_timers[$timerName])) {
@@ -28,11 +36,19 @@ class Cm_Mongo_Profiler
     self::$_timers[$timerName]['count'] ++;
   }
 
+  /**
+   * @static
+   * @param string $timerName
+   */
   public static function start($timerName)
   {
     self::resume($timerName);
   }
 
+  /**
+   * @static
+   * @param string $timerName
+   */
   public static function pause($timerName)
   {
     if (empty(self::$_timers[$timerName])) {
@@ -44,11 +60,21 @@ class Cm_Mongo_Profiler
     }
   }
 
+  /**
+   * @static
+   * @param string $timerName
+   */
   public static function stop($timerName)
   {
     self::pause($timerName);
   }
 
+  /**
+   * @static
+   * @param string $timerName
+   * @param string $key
+   * @return bool|mixed
+   */
   public static function fetch($timerName, $key='sum')
   {
     if (empty(self::$_timers[$timerName])) {
@@ -76,6 +102,10 @@ class Cm_Mongo_Profiler
     return false;
   }
 
+  /**
+   * @static
+   * @return array
+   */
   public static function getTimers()
   {
     return self::$_timers;
@@ -99,6 +129,7 @@ class Cm_Mongo_Profiler
     if($return) {
       return ob_get_clean();
     }
+    return NULL;
   }
 
 }

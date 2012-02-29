@@ -188,7 +188,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
   protected function _getEmbeddedObject($field)
   {
     if( ! $this->hasData($field) || $this->getData($field) === NULL) {
-      $object = Mage::getModel($this->getResource()->getFieldModelName($field));
+      $object = Mage::getModel($this->getResource()->getFieldModelName($field)); /* @var $object Cm_Mongo_Model_Abstract */
       $this->_setEmbeddedObject($field, $object);
     }
     else if( ! $this->getData($field) instanceof Cm_Mongo_Model_Abstract) {

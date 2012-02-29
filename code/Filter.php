@@ -26,6 +26,7 @@ class Cm_Mongo_Filter
    * @param string $resource    Resource name or collection instance
    * @param string $field       Field name to apply condition to
    * @param string $filters     Optional filters to apply before conditions
+   * @return array
    */
   public static function factory($resource, $field, $filters = NULL)
   {
@@ -52,7 +53,9 @@ class Cm_Mongo_Filter
   /**
    * Apply the condition to the given collection by way of the resource specified on instantiation
    *
-   * @param Varien_Object $object
+   * @param \Cm_Mongo_Model_Resource_Collection_Abstract $collection
+   * @param \Mage_Adminhtml_Block_Widget_Grid_Column $column
+   * @internal param \Varien_Object $object
    * @return mixed
    */
   public function apply(Cm_Mongo_Model_Resource_Collection_Abstract $collection, Mage_Adminhtml_Block_Widget_Grid_Column $column)

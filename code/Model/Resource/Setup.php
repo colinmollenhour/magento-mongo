@@ -50,7 +50,7 @@ class Cm_Mongo_Model_Resource_Setup extends Mage_Core_Model_Resource_Setup
    * @param   string $actionType install|upgrade|uninstall
    * @param   string $fromVersion
    * @param   string $toVersion
-   * @return  string | false
+   * @return  string|bool
    */
 
   protected function _modifyResourceDb($actionType, $fromVersion, $toVersion)

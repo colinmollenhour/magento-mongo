@@ -19,6 +19,11 @@ class Cm_Mongo_Model_Resource_Type_Mongo extends Mage_Core_Model_Resource_Type_A
     return $conn;
   }
 
+  /**
+   * @param string $group
+   * @param string $query
+   * @return string
+   */
   public function start_profiler($group, $query)
   {
     $key = "$group::$query";
@@ -26,6 +31,9 @@ class Cm_Mongo_Model_Resource_Type_Mongo extends Mage_Core_Model_Resource_Type_A
     return $key;
   }
 
+  /**
+   * @param string $key
+   */
   public function stop_profiler($key)
   {
     Cm_Mongo_Profiler::stop($key);

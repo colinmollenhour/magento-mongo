@@ -218,7 +218,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Get an instance of an embedded/referenced model for the given field.
    * 
-   * @param type $field
+   * @param string $field
    * @return Cm_Mongo_Model_Abstract
    */
   public function getFieldModel($field)
@@ -229,7 +229,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /**
    * Get the resource instance of an embedded/referenced model for the given field.
    *
-   * @param type $field
+   * @param string $field
    * @return Cm_Mongo_Model_Resource_Abstract
    */
   public function getFieldResource($field)
@@ -673,10 +673,10 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    * $criteria, $update, NULL, NULL, $options
    * $criteria, $operation, $keysValues, NULL, $options
    *
-   * @param array|Cm_Mongo_Model_Abstract $criteria  If an object, the object _id will be used as the criteria
-   * @param array|string $update
-   * @param array|string|null $key
-   * @param array|string|int|float|MongoDate|null $value
+   * @param array|Cm_Mongo_Model_Abstract|mixed $criteria  A model instance, query array or an _id
+   * @param array|string $update  An update array or an update operation name
+   * @param array|string|null $key  Update options or a key to update
+   * @param array|string|int|float|MongoDate|null $value Update options or the update value
    * @param array $options
    * @return boolean
    */
@@ -710,7 +710,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       $criteria = $idQuery;
     }
     else if ( ! is_array($criteria)) {
-      $criteria = array('_id' => $criteria);
+      $criteria = array('_id' => $this->castToMongo('_id', $criteria));
     }
 
     // Prepare update
