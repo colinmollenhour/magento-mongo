@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * Loads the database driver
+ */
 class Cm_Mongo_Model_Resource_Type_Mongo extends Mage_Core_Model_Resource_Type_Abstract
 {
 

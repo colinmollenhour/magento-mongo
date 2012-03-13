@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * MongoDb query profiler
+ */
 class Cm_Mongo_Profiler
 {
 
@@ -12,6 +14,7 @@ class Cm_Mongo_Profiler
 
   /**
    * @static
+   * @ignore
    * @param string $timerName
    */
   public static function reset($timerName)
@@ -25,6 +28,7 @@ class Cm_Mongo_Profiler
 
   /**
    * @static
+   * @ignore
    * @param string $timerName
    */
   public static function resume($timerName)
@@ -38,6 +42,7 @@ class Cm_Mongo_Profiler
 
   /**
    * @static
+   * @ignore
    * @param string $timerName
    */
   public static function start($timerName)
@@ -47,6 +52,7 @@ class Cm_Mongo_Profiler
 
   /**
    * @static
+   * @ignore
    * @param string $timerName
    */
   public static function pause($timerName)
@@ -62,6 +68,7 @@ class Cm_Mongo_Profiler
 
   /**
    * @static
+   * @ignore
    * @param string $timerName
    */
   public static function stop($timerName)

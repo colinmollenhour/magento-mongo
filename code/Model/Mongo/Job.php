@@ -1,5 +1,7 @@
 <?php
 /**
+ * Job Resource Model
+ *
  * @see Cm_Mongo_Model_Job
  */
 class Cm_Mongo_Model_Mongo_Job extends Cm_Mongo_Model_Resource_Abstract

@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * Generates callbacks for filtering a collection on conditions from another collection
+ */
 class Cm_Mongo_Filter
 {
   /** @var string */
@@ -55,8 +57,6 @@ class Cm_Mongo_Filter
    *
    * @param \Cm_Mongo_Model_Resource_Collection_Abstract $collection
    * @param \Mage_Adminhtml_Block_Widget_Grid_Column $column
-   * @internal param \Varien_Object $object
-   * @return mixed
    */
   public function apply(Cm_Mongo_Model_Resource_Collection_Abstract $collection, Mage_Adminhtml_Block_Widget_Grid_Column $column)
   {

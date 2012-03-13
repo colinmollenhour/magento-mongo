@@ -11,7 +11,7 @@ class Cm_Mongo_Model_Schema extends Varien_Simplexml_Config
   /**
    * Load cache on instantiation
    *
-   * @param null|Varien_Simplexml_Element $sourceData
+   * @param null|string|Varien_Simplexml_Element $sourceData
    */
   public function __construct($sourceData=null)
   {

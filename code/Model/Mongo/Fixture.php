@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * Use for loading fixtures with EcomDev_PHPUnit
+ */
 class Cm_Mongo_Model_Mongo_Fixture extends Cm_Mongo_Model_Resource_Abstract
 {
 

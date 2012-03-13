@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * A resource for install/upgrade scripts. Supports .php and .js files.
+ */
 class Cm_Mongo_Model_Resource_Setup extends Mage_Core_Model_Resource_Setup
 {
 

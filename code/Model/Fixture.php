@@ -1,5 +1,4 @@
 <?php
-
 /**
  * This class allows using PHPUnit fixtures with the EcomDev_PHPUnit module.
  */

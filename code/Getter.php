@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * Generates callbacks to use for grid columns
+ */
 class Cm_Mongo_Getter
 {
   

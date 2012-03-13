@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * The Cm_Mongo equivalent of Mage_Core_Model_Mysql4_Abstract
+ */
 class Cm_Mongo_Model_Resource_Collection_Abstract extends Varien_Data_Collection
 {
 

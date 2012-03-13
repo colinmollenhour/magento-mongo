@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * The Cm_Mongo equivalent of Mage_Core_Model_Mysql4_Abstract
+ */
 abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource_Abstract
 {
 
@@ -897,9 +899,11 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   protected function _beforeDelete(Mage_Core_Model_Abstract $object){}
   protected function _afterDelete(Mage_Core_Model_Abstract $object){}
 
-  /* Overridden only to disable */
+  /** @ignore */
   public function beginTransaction(){}
+  /** @ignore */
   public function commit(){}
+  /** @ignore */
   public function rollback(){}
 
 

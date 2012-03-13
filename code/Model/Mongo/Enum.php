@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * Enum Resource Model
+ */
 class Cm_Mongo_Model_Mongo_Enum extends Cm_Mongo_Model_Resource_Abstract
 {
   
