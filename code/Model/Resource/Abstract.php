@@ -383,15 +383,20 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         $options = array_merge($options, $additionalSaveOptions);
       }
 
-      // Insert document
+      // Insert document (throws exception on failure)
       $this->_getWriteCollection()->insert($data, $options);
       if( ! $object->hasData('_id') || $data['_id'] != $object->getData('_id')) {
         $object->setData('_id', $data['_id']);
       }
-      
+
       // Execute any pending operations
       if($ops) {
         $object->setLastUpdateStatus($this->update($object, $ops));
+      }
+      // Inserts don't use additional save criteria
+      else if($object->getAdditionalSaveCriteria()) {
+        $object->setAdditionalSaveCriteria();
+        $object->setLastUpdateStatus(TRUE);
       }
     }
 
