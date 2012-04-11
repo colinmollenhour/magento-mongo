@@ -703,6 +703,20 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
   }
 
   /**
+   * Overridden to reset original data after the _afterSave callback.
+   *
+   * @return Cm_Mongo_Model_Abstract
+   */
+  public function afterCommitCallback()
+  {
+    parent::afterCommitCallback();
+    if($this->_dataSaveAllowed) {
+      $this->setOrigData();
+    }
+    return $this;
+  }
+
+  /**
    * Enable/disable the cache or get the current state
    *
    * @param boolean $value

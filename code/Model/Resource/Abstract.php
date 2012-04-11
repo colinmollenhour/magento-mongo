@@ -386,7 +386,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       // Insert document (throws exception on failure)
       $this->_getWriteCollection()->insert($data, $options);
       if( ! $object->hasData('_id') || $data['_id'] != $object->getData('_id')) {
-        $object->setData('_id', $data['_id']);
+        $object->setData('_id', $data['_id'])->setOrigData('_id', $data['_id']);
       }
 
       // Execute any pending operations
@@ -469,11 +469,9 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     
     // Clear pending operations
     $object->resetPendingOperations();
+    $object->isObjectNew(FALSE);
 
     $this->_afterSave($object);
-
-    // Reset object state after running _afterSave action in case _afterSave needs original data
-    $object->setOrigData()->isObjectNew(FALSE);
 
     return $this;
   }
@@ -907,7 +905,17 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
   /** @ignore */
   public function beginTransaction(){}
   /** @ignore */
-  public function commit(){}
+  public function commit()
+  {
+    $adapterKey = spl_object_hash($this->_getWriteAdapter());
+    if (isset(self::$_commitCallbacks[$adapterKey])) {
+      $callbacks = self::$_commitCallbacks[$adapterKey];
+      self::$_commitCallbacks[$adapterKey] = array();
+      foreach ($callbacks as $index => $callback) {
+        call_user_func($callback);
+      }
+    }
+  }
   /** @ignore */
   public function rollback(){}
 
