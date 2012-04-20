@@ -34,7 +34,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     $this->_resourceModel = $resource[0];
     $this->_entityName = $resource[1];
     $this->_collectionName = $this->getSchema()->getCollectionName($this->_resourceModel, $this->_entityName);
-    $this->_caches[] = new Varien_Data_Collection();
+    $this->_caches[] = new Cm_Mongo_Collection();
   }
 
   /**

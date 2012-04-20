@@ -2,7 +2,7 @@
 /**
  * This class should always be used when populating embeddedSet fields
  */
-class Cm_Mongo_Model_Resource_Collection_Embedded extends Varien_Data_Collection
+class Cm_Mongo_Model_Resource_Collection_Embedded extends Cm_Mongo_Collection
 {
 
   /** @var Cm_Mongo_Model_Abstract */
@@ -45,35 +45,6 @@ class Cm_Mongo_Model_Resource_Collection_Embedded extends Varien_Data_Collection
       $this->_items[] = $item;
     }
     return $this;
-  }
-
-  /**
-   * Remove item from collection by item key
-   *
-   * @param   mixed $key
-   * @return  Varien_Data_Collection
-   */
-  public function removeItemByKey($key)
-  {
-    $key = $this->_getItemKey($key);
-    if (isset($this->_items[$key])) {
-      unset($this->_items[$key]);
-    }
-    return $this;
-  }
-
-  /**
-   * Get a key for an item
-   *
-   * @param mixed $id
-   * @return mixed
-   */
-  protected function _getItemKey($id)
-  {
-    if($id instanceof MongoId) {
-      return (string) $id;
-    }
-    return $id;
   }
 
   /**
