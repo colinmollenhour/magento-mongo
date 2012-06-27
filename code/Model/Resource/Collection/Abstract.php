@@ -407,7 +407,9 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
   public function getSize()
   {
     if (is_null($this->_totalRecords)) {
-      $this->_totalRecords = $this->getQuery()->count(FALSE); // false ignores limit and skip
+      $query = clone $this->getQuery();
+      $query->unset_option('sort');                // ignore sorting (not sure if this is necessary)
+      $this->_totalRecords = $query->count(FALSE); // false ignores limit and skip
     }
     return intval($this->_totalRecords);
   }
