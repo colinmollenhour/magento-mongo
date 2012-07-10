@@ -4,16 +4,16 @@
  */
 class Cm_Mongo_Model_Resource_Type_Mongo extends Mage_Core_Model_Resource_Type_Abstract
 {
-
   /**
    * Get the Mongo database adapter
    *
-   * @param Mage_Core_Model_Config_Element $config Connection config
+   * @param array $config Connection config
    * @return Mongo_Database
    */
-  public function getConnection(Mage_Core_Model_Config_Element $config)
+  public function getConnection(array $config)
   {
-    $conn = Mongo_Database::instance((string)$config->config, $config->asCanonicalArray());
+    $name = isset($config['config']) ? $config['config'] : '';
+    $conn = Mongo_Database::instance($name, $config);
 
     // Set profiler
     $conn->set_profiler(array($this, 'start_profiler'), array($this, 'stop_profiler'));
