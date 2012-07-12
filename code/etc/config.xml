@@ -128,7 +128,7 @@
   <default>
     <system>
       <mongo_queue>
-        <enabled>0</enabled>
+        <cron_enabled>0</cron_enabled>
         <limit>50</limit>
         <time>10</time>
       </mongo_queue>

@@ -342,7 +342,7 @@ class Cm_Mongo_Model_Job extends Cm_Mongo_Model_Abstract
    */
   public function runCron()
   {
-    if( ! Mage::getStoreConfigFlag('system/mongo_queue/enabled')) {
+    if( ! Mage::getStoreConfigFlag('system/mongo_queue/cron_enabled')) {
       return;
     }
     $limit = (int) Mage::getStoreConfig('system/mongo_queue/limit');
