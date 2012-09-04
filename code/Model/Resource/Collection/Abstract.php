@@ -704,7 +704,13 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
     else if (strpos($fieldName, '|')) {
       $query = array();
       foreach(explode('|', $fieldName) as $_fieldName) {
-        $query[] = $this->_getCondition($_fieldName, $condition, $_condition);
+        switch (func_num_args()) {
+          case 2:
+            $query[] = $this->_getCondition($_fieldName, $condition); break;
+          case 3:
+          default:
+            $query[] = $this->_getCondition($_fieldName, $condition, $_condition); break;
+        }
       }
       $query = array('$or' => $query);
     }
@@ -713,7 +719,13 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
     else if (strpos($fieldName, '->')) {
       list($reference,$referenceField) = explode('->', $fieldName, 2);
       $collection = Mage::getSingleton($this->getResource()->getFieldModelName($reference))->getCollection();
-      $collection->addFieldToFilter($referenceField, $condition, $_condition);
+      switch (func_num_args()) {
+        case 2:
+          $collection->addFieldToFilter($referenceField, $condition); break;
+        case 3:
+        default:
+          $collection->addFieldToFilter($referenceField, $condition, $_condition); break;
+      }
       $query = array($reference => array('$in' => $collection->getAllIds(TRUE)));
     }
 
