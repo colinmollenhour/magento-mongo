@@ -141,9 +141,17 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
    * @param null|string|array $_condition
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
-  public function addFieldToFilter($field, $condition=null, $_condition=null)
+  public function addFieldToFilter($field, $condition = NULL, $_condition = NULL)
   {
-    $this->_query->find($this->_getCondition($field, $condition, $_condition));
+    switch (func_num_args()) {
+      case 1:
+        $query = $this->_getCondition($field); break;
+      case 2:
+        $query = $this->_getCondition($field, $condition); break;
+      case 3: default:
+        $query = $this->_getCondition($field, $condition, $_condition); break;
+    }
+    $this->_query->find($query);
     return $this;
   }
 
@@ -688,7 +696,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
     }
 
     // When using third argument, convert to two arguments
-    else if ( $_condition !== NULL) {
+    else if ( func_num_args() == 3 ) {
       $query = $this->_getCondition($fieldName, array($condition => $_condition));
     }
 
@@ -768,7 +776,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
       }
 
       // Equality
-      elseif (isset($condition['eq'])) {
+      elseif (array_key_exists('eq', $condition)) {
         // Nested data, assume exact match (should we bother to typecast?)
         if(strpos($fieldName,'.') !== false) {
           $query = array($fieldName => $condition['eq']);
@@ -785,7 +793,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
           $query = array($fieldName => $this->castFieldValue($fieldName, $condition['eq']));
         }
       }
-      elseif (isset($condition['neq'])) {
+      elseif (array_key_exists('neq', $condition)) {
         // Search array for presence of a single value
         if( ! is_array($condition['neq']) && $this->getResource()->getFieldType($fieldName) == 'set') {
           $query = array($fieldName => array('$ne' => $condition['neq']));
@@ -823,13 +831,13 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
       }
 
       // Test null by type
-      elseif (isset($condition['notnull'])) {
+      elseif (array_key_exists('notnull', $condition)) {
         $query = array($fieldName => array('$not' => array('$type' => Mongo_Database::TYPE_NULL)));
       }
-      elseif (isset($condition['null'])) {
+      elseif (array_key_exists('null', $condition)) {
         $query = array($fieldName => array('$type' => Mongo_Database::TYPE_NULL));
       }
-      elseif (isset($condition['is'])) {
+      elseif (array_key_exists('is', $condition)) {
         $query = strtoupper($condition['is']);
         if($query == 'NULL' || $query === NULL) {
           $query = array($fieldName => array('$type' => Mongo_Database::TYPE_NULL));
@@ -855,7 +863,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
       }
 
       // Bypass typecasting
-      elseif (isset($condition['raw'])) {
+      elseif (array_key_exists('raw', $condition)) {
         $query = array($fieldName => $condition['raw']);
       }
 
