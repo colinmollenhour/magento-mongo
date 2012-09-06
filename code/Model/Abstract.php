@@ -369,7 +369,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
   {
     if( ! isset($this->_references[$field])) {
       $modelName = $this->getResource()->getFieldModelName($field);
-      $collection = Mage::getSingleton($modelName)->getCollection()->addFieldToFilter('_id', '$in', $this->getData($field));
+      $collection = Mage::getSingleton($modelName)->getCollection()->addFieldToFilter('_id', 'in', $this->getData($field));
       $this->_references[$field] = $collection;
     }
     return $this->_references[$field];

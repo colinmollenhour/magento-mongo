@@ -861,8 +861,10 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
       // Array queries
       elseif (isset($condition['in'])) {
         $values = array();
-        foreach($condition['in'] as $value) {
-          $values[] = $this->castFieldValue($fieldName, $value);
+        if ( ! empty($condition['in'])) {
+          foreach($condition['in'] as $value) {
+            $values[] = $this->castFieldValue($fieldName, $value);
+          }
         }
         $query = array($fieldName => array('$in' => $values));
       }
