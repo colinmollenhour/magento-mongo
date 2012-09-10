@@ -180,6 +180,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    * Get the field mapping data for the given field name.
    *
    * @param string $field
+   * @throws Exception
    * @return Varien_Simplexml_Element
    */
   public function getFieldMapping($field)
@@ -332,6 +333,8 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
    * Save object
    *
    * @param Cm_Mongo_Model_Abstract|Mage_Core_Model_Abstract $object
+   * @throws Mage_Core_Exception
+   * @throws MongoCursorException
    * @return  Cm_Mongo_Model_Resource_Abstract
    */
   public function save(Mage_Core_Model_Abstract $object)
@@ -497,12 +500,13 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
 
   /**
    * Load mongo data into a model using the schema mappings
-   * 
-   * @param Varien_Object $object
+   *
+   * @param Mage_Core_Model_Abstract $object
    * @param array $data
    * @param boolean $original   Is the data from the database?
+   * @throws Exception
    */
-  public function hydrate(Varien_Object $object, array $data, $original = FALSE)
+  public function hydrate(Mage_Core_Model_Abstract $object, array $data, $original = FALSE)
   {
     $converter = $this->getMongoToPhpConverter();
     foreach($this->getFieldMappings() as $field => $mapping)
@@ -911,7 +915,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
     if (isset(self::$_commitCallbacks[$adapterKey])) {
       $callbacks = self::$_commitCallbacks[$adapterKey];
       self::$_commitCallbacks[$adapterKey] = array();
-      foreach ($callbacks as $index => $callback) {
+      foreach ($callbacks as $callback) {
         call_user_func($callback);
       }
     }
