@@ -862,16 +862,28 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
       elseif (isset($condition['in'])) {
         $values = array();
         if ( ! empty($condition['in'])) {
-          foreach($condition['in'] as $value) {
-            $values[] = $this->castFieldValue($fieldName, $value);
+          if (in_array($this->getResource()->getFieldType($fieldName), array('set','referenceSet','embeddedSet','enumSet'))) {
+            $values = $this->castFieldValue($fieldName, $condition['in']);
+          }
+          else {
+            foreach($condition['in'] as $value) {
+              $values[] = $this->castFieldValue($fieldName, $value);
+            }
           }
         }
         $query = array($fieldName => array('$in' => $values));
       }
       elseif (isset($condition['nin'])) {
         $values = array();
-        foreach($condition['nin'] as $value) {
-          $values[] = $this->castFieldValue($fieldName, $value);
+        if ( ! empty($condition['nin'])) {
+          if (in_array($this->getResource()->getFieldType($fieldName), array('set','referenceSet','embeddedSet','enumSet'))) {
+            $values = $this->castFieldValue($fieldName, $condition['nin']);
+          }
+          else {
+            foreach($condition['nin'] as $value) {
+              $values[] = $this->castFieldValue($fieldName, $value);
+            }
+          }
         }
         $query = array($fieldName => array('$nin' => $values));
       }
