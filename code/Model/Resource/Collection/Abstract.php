@@ -431,13 +431,15 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
    */
   public function getAllIds($noLoad = FALSE)
   {
-    if($this->isLoaded() || ! $noLoad) {
+    if ( ( ! $this->_curPage && ! $this->_pageSize) && $this->isLoaded() || ! $noLoad) {
       return parent::getAllIds();
     }
 
     // Use fast method of getting ids, full documents not loaded
     $idsQuery = clone $this->_query;
     $idsQuery->set_option('fields', array('_id' => 1));
+    $idsQuery->unset_option('skip');
+    $idsQuery->unset_option('limit');
     $ids = array();
     foreach($idsQuery->cursor() as $document) {
       $ids[] = $document['_id'];
