@@ -41,6 +41,11 @@ class Cm_Mongo_Model_Mongo_Fixture extends Cm_Mongo_Model_Resource_Abstract
    */
   public function loadCollectionData($collection, $data)
   {
+    $model = Mage::getModel($collection);
+    foreach ($data as $index => $document) {
+      $model->setData($document);
+      $data[$index] = $model->getResource()->dehydrate($model);
+    }
     $this->_getCollection($collection)->batchInsert($data);
   }
 
