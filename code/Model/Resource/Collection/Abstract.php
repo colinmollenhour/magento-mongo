@@ -819,7 +819,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
       }
 
       // Like (convert SQL like to regex)
-      elseif (isset($condition['like'])) {
+      elseif (array_key_exists('like', $condition)) {
         $query = preg_quote($condition['like']);
         $query = str_replace('\_', '_', $query); // unescape SQL syntax
         if(strlen($query) && $query{0} != '%') {
@@ -831,7 +831,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
         $query = trim($query,'%');
         $query = array($fieldName => new MongoRegex('/'.str_replace('%','.*',$query).'/i'));
       }
-      elseif (isset($condition['nlike'])) {
+      elseif (array_key_exists('nlike', $condition)) {
         $query = preg_quote($condition['nlike']);
         $query = str_replace('\_', '_', $query); // unescape SQL syntax
         if(strlen($query) && $query{0} != '%') {
@@ -861,7 +861,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
       }
 
       // Array queries
-      elseif (isset($condition['in'])) {
+      elseif (array_key_exists('in', $condition)) {
         $values = array();
         if ( ! empty($condition['in'])) {
           if (in_array($this->getResource()->getFieldType($fieldName), array('set','referenceSet','embeddedSet','enumSet'))) {
@@ -875,7 +875,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
         }
         $query = array($fieldName => array('$in' => $values));
       }
-      elseif (isset($condition['nin'])) {
+      elseif (array_key_exists('nin', $condition)) {
         $values = array();
         if ( ! empty($condition['nin'])) {
           if (in_array($this->getResource()->getFieldType($fieldName), array('set','referenceSet','embeddedSet','enumSet'))) {
