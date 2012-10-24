@@ -635,10 +635,15 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
    */
   public function getAsZendDate($field, $format = null, $useTimezone = true)
   {
-    $type = $this->getResource()->getFieldType($field);
     $data = $this->getData($field);
     if( ! $data) {
       return NULL;
+    }
+
+    // Detect any string stored as date as datestring
+    $type = $this->getResource()->getFieldType($field);
+    if ($type == 'string' && strlen($data) == 10 && preg_match('/^\d{4}-\d{2}-\d{2}$/', $data)) {
+      $type = 'datestring';
     }
 
     switch($type)
