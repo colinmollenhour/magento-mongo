@@ -188,6 +188,23 @@ class Cm_Mongo_Model_Type_Tomongo
     return $ids;
   }
 
+  public function referenceHash($mapping, $value)
+  {
+    $items = array();
+    $idField = (string) $mapping->id_field;
+    if ( ! $idField) {
+      throw new Exception('Cannot cast value to referenceHash, no id_field defined.');
+    }
+    foreach($value as $item) {
+      $data = $item instanceof Varien_Object ? $item->getData() : $item;
+      if ( ! empty($data[$idField])) {
+        $data[$idField] = Mage::getResourceSingleton((string) $mapping->model)->castToMongo('_id', $data[$idField]);
+        $items[] = $data;
+      }
+    }
+    return $items;
+  }
+
   public function __call($name, $args)
   {
     return Mage::getSingleton($name)->toMongo($args[0], $args[1]);

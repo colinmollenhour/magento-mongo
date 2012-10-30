@@ -167,6 +167,11 @@ class Cm_Mongo_Model_Type_Tophp
     return $ids;
   }
 
+  public function referenceHash($mapping, $value)
+  {
+    return (array) $value;
+  }
+
   public function __call($name, $args)
   {
     return Mage::getSingleton($name)->toPHP($args[0], $args[1]);

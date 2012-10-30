@@ -358,18 +358,42 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
     $this->_references[$field] = $object;
     return $this;
   }
-  
+
   /**
-   * Get a collection of referenced objects
-   * 
+   * Get a collection of referenced objects (supports referencedSet and referencedHash field types)
+   *
    * @param string $field
+   * @throws Exception
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
   public function getReferencedCollection($field)
   {
     if( ! isset($this->_references[$field])) {
+      $mapping   = $this->getResource()->getFieldMapping($field);
+      switch ((string) $mapping->type)
+      {
+        case 'referenceSet':
+          $ids = $this->getData($field);
+          break;
+        case 'referenceHash':
+          $ids = array();
+          if ($this->getData($field)) {
+            $idField = (string) $mapping->id_field;
+            if ( ! $idField) {
+              throw new Exception("Field definition for $field is missing 'id_field' definition.");
+            }
+            foreach ($this->getData($field) as $item) {
+              if ( ! empty($item[$idField])) {
+                $ids[] = $item[$idField];
+              }
+            }
+          }
+          break;
+        default:
+          throw new Exception('Field type does not support referenced collections.');
+      }
       $modelName = $this->getResource()->getFieldModelName($field);
-      $collection = Mage::getSingleton($modelName)->getCollection()->addFieldToFilter('_id', 'in', $this->getData($field));
+      $collection = Mage::getSingleton($modelName)->getCollection()->addFieldToFilter('_id', 'in', $ids);
       $this->_references[$field] = $collection;
     }
     return $this->_references[$field];

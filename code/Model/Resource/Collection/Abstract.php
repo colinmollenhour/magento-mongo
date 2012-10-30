@@ -275,8 +275,11 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
       if(strpos($field, '.')) {
         $parts = explode('.', $field);
         $field = array_pop($parts);
-        while($_field = array_shift($parts)) {
-          if(isset($resource->getFieldMapping($_field)->subtype)) {
+        while ($_field = array_shift($parts)) {
+          if (isset($resource->getFieldMapping($_field)->id_field)) {
+            return $resource->castToMongo('_id', $value);
+          }
+          if (isset($resource->getFieldMapping($_field)->subtype)) {
             if( ! count($parts)) {
               $subtype = (string) $resource->getFieldMapping($_field)->subtype;
               return $resource->getPhpToMongoConverter()->$subtype((object)null, $value);
@@ -316,6 +319,7 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
    *
    * @param string $field
    * @param Cm_Mongo_Model_Resource_Collection_Abstract $collection
+   * @throws Exception
    * @return Cm_Mongo_Model_Resource_Collection_Abstract
    */
   public function applyReferencedCollectionFilter($field, $collection)
@@ -323,26 +327,41 @@ class Cm_Mongo_Model_Resource_Collection_Abstract extends Cm_Mongo_Collection
     $ids = array();
 
     // Get all ids for the given field
-    $fieldType = (string) $this->getResource()->getFieldType($field);
-    if($fieldType == 'reference') {
-      foreach($this->getItems() as $item) {
-        if($ref = $item->getData($field)) {
-          $ids[] = $ref;
-        }
-      }
-    }
-    // Get unique set of ids from field
-    else if($fieldType == 'referenceSet') {
-      foreach($this->getItems() as $item) {
-        if($refSet = $item->getData($field)) {
-          foreach($refSet as $ref) {
+    switch ( (string) $this->getResource()->getFieldType($field))
+    {
+      case 'reference':
+        foreach ($this->getItems() as $item) {
+          if ($ref = $item->getData($field)) {
             $ids[] = $ref;
           }
         }
-      }
-    }
-    else {
-      throw new Mage_Core_Exception("Cannot get referenced collection for field '$field' of type '$fieldType'.");
+        break;
+      // Get unique set of ids from field
+      case 'referenceSet':
+        foreach ($this->getItems() as $item) {
+          if ($refSet = $item->getData($field)) {
+            foreach ($refSet as $ref) {
+              $ids[] = $ref;
+            }
+          }
+        }
+        break;
+      case 'referenceHash':
+        $idField = (string) $this->getResource()->getFieldMapping($field)->id_field;
+        if ( ! $idField) {
+          throw new Exception("Field definition for $field is missing 'id_field' definition.");
+        }
+        foreach ($this->getItems() as $item) {
+          if ($refSet = $item->getData($field)) {
+            foreach ($refSet as $ref) {
+              if ( ! empty($ref[$idField])) {
+                $ids[] = $ref[$idField];
+              }
+            }
+          }
+        }
+      default:
+        throw new Exception("Cannot get referenced collection for field '$field'.");
     }
 
     // array_unique is slow, but required for compatibility with MongoId and possibly other id data types
