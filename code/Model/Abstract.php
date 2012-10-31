@@ -132,7 +132,7 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
         // For arrays and embedded collections, unset the orig data so that the full value will be overwritten on update
         if(
           (is_array($value) || $value instanceof Cm_Mongo_Model_Resource_Collection_Embedded) &&
-          (isset($this->_origData[$key]) && $this->_origData[$key] != $value)
+          (is_array($this->_origData) && array_key_exists($key, $this->_origData) && $this->_origData[$key] != $value)
         ) {
           unset($this->_origData[$key]);
         }
