@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+  <!-- General-purpose indexer -->
+  <indexer>
+
+    <!-- Index configuration -->
+      <foo_bar>                     <!-- entity type: catalog_product, catalog_category etc. -->
+
+        <name>                      <!-- field name that changed -->
+          <foo_bar_name>                   <!-- arbitrary name -->
+            <entity>foo/bar</entity>       <!-- source entity model -->
+            <resource>foo/baz</resource>   <!-- resource to update index for -->
+            <reference>bar_id</reference>  <!-- query for items that reference the updated document -->
+            <method>getName</method>       <!-- if method not specified then getData('name') would be assumed -->
+            <index>bar_name</index>        <!-- location to save the indexed data: _.bar_name -->
+            <ignore/>                      <!-- ignore indexer -->
+          </foo_bar_name>
+        </name>
+
+        <other_name>                <!-- field name that changed -->
+          <foo_bar_other_name>                          <!-- arbitrary name -->
+            <duplicates>name/foo_bar_name</duplicates>  <!-- [referenced field name that changed]/[referenced indexer name] -->
+            <method>getSurname</method>                 <!-- If an indexer uses "duplicates" it must specify a method -->
+          </foo_bar_other_name>
+        </other_name>
+
+      </foo_bar>
+
+  </indexer>
+</root>
