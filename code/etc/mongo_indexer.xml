@@ -14,6 +14,21 @@
             <method>getName</method>       <!-- if method not specified then getData('name') would be assumed -->
             <index>bar_name</index>        <!-- location to save the indexed data: _.bar_name -->
             <ignore/>                      <!-- ignore indexer -->
+            <filters>                      <!-- foo/bar collection filters -->
+              <foo_bar_status>             <!-- arbitrary name -->
+                <field>status</field>      <!-- field name -->
+                <value>active</value>      <!-- value -->
+                <condition>eq</condition>  <!-- optional. Condition for comparison. Default is: "eq". -->
+                <type>string</type>        <!-- optional. Value type. Acceptable types: "integer", "string", "boolean", "array". Default is: "string". Array type example: "1,2,3" -->
+              </foo_bar_status>
+            </filters>
+            <dependency>                   <!-- arbitrary name -->
+              <relation_ban>relation_id->ban_id</relation_ban>
+            </dependency>
+            <fields>                       <!-- fields to add to collection result -->
+              <firstname>firstname</firstname>
+              <lastname>lastname</lastname>
+            </fields>
           </foo_bar_name>
         </name>
 

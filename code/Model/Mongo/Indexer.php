@@ -6,6 +6,13 @@
  */
 class Cm_Mongo_Model_Mongo_Indexer extends Cm_Mongo_Model_Resource_Abstract
 {
+  const COLLECTION_STEP = 100;
+
+  const FILTER_TYPE_INTEGER = 'integer';
+  const FILTER_TYPE_BOOLEAN = 'boolean';
+  const FILTER_TYPE_STRING  = 'string';
+  const FILTER_TYPE_ARRAY   = 'array';
+
   public function _construct()
   {
     $this->_init('mongo/indexer');
@@ -18,11 +25,20 @@ class Cm_Mongo_Model_Mongo_Indexer extends Cm_Mongo_Model_Resource_Abstract
   {
     foreach (Mage::getModel('mongo/indexer')->getAllIndexers() as $indexer) {
       $this->removeIndex($indexer);
-      /** @var $collection Cm_Mongo_Model_Resource_Collection_Abstract */
-      $collection = Mage::getModel($indexer->entity)->getCollection();
-      foreach ($collection as $model /** @var $model Cm_Mongo_Model_Abstract */) {
-        $this->updateIndex($indexer, $model);
-      }
+      $collection = $this->getCollection($indexer);
+      $size = $collection->getSize();
+      $page = 1;
+      do {
+        $collection->getQuery()
+          ->skip(($page - 1)*self::COLLECTION_STEP)
+          ->limit(self::COLLECTION_STEP)
+          ->sort(array('_id' => Mongo_Collection::ASC));
+        foreach ($collection as $model /** @var $model Cm_Mongo_Model_Abstract */) {
+          $this->updateIndex($indexer, $model);
+        }
+        $collection->reset();
+        $page++;
+      } while ($page <= intval(ceil($size/self::COLLECTION_STEP)));
     }
   }
 
@@ -65,6 +81,60 @@ class Cm_Mongo_Model_Mongo_Indexer extends Cm_Mongo_Model_Resource_Abstract
         NULL,
         array('multiple' => TRUE)
       );
+    }
+  }
+
+  /**
+   * @param stdClass $indexer
+   * @return Cm_Mongo_Model_Resource_Collection_Abstract
+   */
+  public function getCollection(stdClass $indexer)
+  {
+    /** @var $collection Cm_Mongo_Model_Resource_Collection_Abstract */
+    $collection = Mage::getModel($indexer->entity)->getCollection();
+    // Add filters
+    if (isset($indexer->filters)) {
+      $this->_addFilters($collection, $indexer->filters);
+    }
+    // Add fields to selection
+    if (isset($indexer->fields)) {
+      $collection->addFieldToResults(array_values($indexer->fields));
+    }
+    // Add fields to preload
+    if (isset($indexer->dependency)) {
+      $collection->addFieldToPreload(array_values($indexer->dependency));
+    }
+
+    return $collection;
+  }
+
+  /**
+   * @param Cm_Mongo_Model_Resource_Collection_Abstract $collection
+   * @param array $filters
+   */
+  protected function _addFilters(Cm_Mongo_Model_Resource_Collection_Abstract $collection, array $filters)
+  {
+    foreach ($filters as $filter) {
+      $field = $filter['field'];
+      $filterType = isset($filter['type']) ? $filter['type'] : self::FILTER_TYPE_STRING;
+      switch ($filterType) {
+        case self::FILTER_TYPE_BOOLEAN :
+          $value = (bool) $filter['value'];
+          break;
+        case self::FILTER_TYPE_INTEGER :
+          $value = intval($filter['value']);
+          break;
+        case self::FILTER_TYPE_ARRAY :
+          $value = explode(',', $filter['value']);
+          break;
+        case self::FILTER_TYPE_STRING :
+        default:
+          $value = strval($filter['value']);
+          break;
+      }
+      $condition = isset($filter['condition']) ? $filter['condition'] : 'eq';
+      // Add filter to collection
+      $collection->addFieldToFilter($field, $condition, $value);
     }
   }
 
