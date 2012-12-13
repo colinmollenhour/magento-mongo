@@ -35,7 +35,7 @@ class Cm_Mongo_Model_Indexer extends Mage_Index_Model_Indexer_Abstract
    */
   public function getDescription()
   {
-    return Mage::helper('mongo')->__('Index entities to avoid references call.');
+    return Mage::helper('mongo')->__('Basic general-purpose indexer for Mongo models.');
   }
 
   /**

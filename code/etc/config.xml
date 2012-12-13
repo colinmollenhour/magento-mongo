@@ -77,6 +77,14 @@
         <class>Cm_Mongo_Model_Mongo</class>
       </mongo_mongo>
     </models>
+
+    <index>
+      <indexer>
+        <mongo_general_indexer>
+          <model>mongo/indexer</model>
+        </mongo_general_indexer>
+      </indexer>
+    </index>
     
   </global>
   
