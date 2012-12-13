@@ -35,47 +35,5 @@
       </fields>
     </job>
   </mongo>
-  
-  <!-- Sample Schema -->
-  
-  <!-- Resource -->
-  <foo>
-    <!-- Entity -->
-    <bar>
-      <collection>foobar</collection>   <!-- Collection name in database -->
-      <autoincrement/>                  <!-- Enables automatic use of autoincrement for _id which uses findAndModify command -->
-      <created_timestamp/>              <!-- Enables automatic setting of created_at timestamp on object creation -->
-      <updated_timestamp/>              <!-- Enables automatic setting of updated_at timestamp on object update -->
-      <fields>
-        <_id>          <type>int</type></_id>
-        <baz_id>       <type>reference</type><model>foo/baz</model></baz_id>
-        <address>      <type>embedded</type><model>foo/address</model></address>
-        <email/>       <!-- type defaults to string if not specified -->
-        <password>     <type>mongo/type_encrypted</type></password>
-        <status>       <type>enum</type>
-                         <options>
-                           <inactive/>
-                           <pending/>
-                           <active/>
-                           <suspended/>
-                         </options>
-                       </status>
-        <active>       <type>bool</type></active>
-        <roles>        <type>set</type><subtype>string</subtype></roles>
-        <created_at>   <type>MongoDate</type></created_at>
-        <updated_at>   <type>MongoDate</type></updated_at>
-      </fields>
-    </bar>
-    <!-- Embedded Object -->
-    <address>
-      <fields>
-        <address1/>
-        <address2/>
-        <city/>
-        <state/>
-        <postcode/>
-        <location>     <type>set</type><subtype>float</subtype></location>
-      </fields>
-    </address>
-  </foo>
+
 </schema>
