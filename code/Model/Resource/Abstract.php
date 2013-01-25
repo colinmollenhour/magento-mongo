@@ -865,7 +865,9 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       {
         $origData = $orig[$key];
         if($origData instanceof Cm_Mongo_Model_Abstract) {
-          $origData = $origData->getOrigData();
+          if( ! $origData = $origData->getOrigData()) {
+            $result[$path.$key] = $value; continue;
+          }
         }
         else if($origData instanceof Cm_Mongo_Model_Resource_Collection_Embedded) {
           $index = 0;
