@@ -866,10 +866,8 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
         $origData = $orig[$key];
 
         // Use orig data from embedded objects
-        if($origData instanceof Cm_Mongo_Model_Abstract) {
-          if( ! $origData = $origData->getOrigData()) {
-            $result[$path.$key] = $value; continue;
-          }
+        if($origData instanceof Cm_Mongo_Model_Abstract && ! ($origData = $origData->getOrigData())) {
+          $result[$path.$key] = $value;
         }
         // Use orig data from embedded collections
         else if($origData instanceof Cm_Mongo_Model_Resource_Collection_Embedded) {
@@ -889,7 +887,6 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
             }
             $index++;
           }
-          continue;
         }
         // Always overwrite numerically indexed arrays rather than set individual values
         else if(is_array($origData) && key($value) === 0) {
