@@ -864,11 +864,14 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       if(is_array($value) && isset($orig[$key]))
       {
         $origData = $orig[$key];
+
+        // Use orig data from embedded objects
         if($origData instanceof Cm_Mongo_Model_Abstract) {
           if( ! $origData = $origData->getOrigData()) {
             $result[$path.$key] = $value; continue;
           }
         }
+        // Use orig data from embedded collections
         else if($origData instanceof Cm_Mongo_Model_Resource_Collection_Embedded) {
           $index = 0;
           foreach($origData as $item) {
@@ -888,9 +891,16 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
           }
           continue;
         }
-        $result2 = $this->_flattenUpdateData($origData, $value, $key.'.');
-        foreach($result2 as $key2 => $value2) {
-          $result[$path.$key2] = $value2;
+        // Always overwrite numerically indexed arrays rather than set individual values
+        else if(is_array($origData) && key($value) === 0) {
+          $result[$path.$key] = $value;
+        }
+        // Recurse!
+        else {
+          $result2 = $this->_flattenUpdateData($origData, $value, $key.'.');
+          foreach($result2 as $key2 => $value2) {
+            $result[$path.$key2] = $value2;
+          }
         }
       }
       else
