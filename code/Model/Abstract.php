@@ -128,6 +128,15 @@ abstract class Cm_Mongo_Model_Abstract extends Mage_Core_Model_Abstract
             }
           }
         }
+
+        // Setting a new embedded collection replaces the old embedded collection
+        if($value instanceof Cm_Mongo_Model_Resource_Collection_Embedded
+            && is_array($this->_origData) && array_key_exists($key, $this->_origData)
+            && $this->_origData[$key] instanceof Cm_Mongo_Model_Resource_Collection_Embedded
+            && $this->_origData[$key] != $value
+        ) {
+          $this->_origData[$key]->isReplaced(TRUE);
+        }
       }
     }
 

@@ -534,6 +534,7 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
           if($value instanceof Varien_Data_Collection) {
             $value = $value->walk('getData');
           }
+          /* @var $set Cm_Mongo_Model_Resource_Collection_Embedded */
           if( ! $object->getData($field)) {
             $set = $object->getDataUsingMethod($field);
             foreach($value as $itemData)
@@ -867,6 +868,10 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
 
         // Use orig data from embedded objects
         if($origData instanceof Cm_Mongo_Model_Abstract && ! ($origData = $origData->getOrigData())) {
+          $result[$path.$key] = $value;
+        }
+        // If orig embedded collection was replaced with new collection, set new array
+        else if($origData instanceof Cm_Mongo_Model_Resource_Collection_Embedded && $origData->isReplaced()) {
           $result[$path.$key] = $value;
         }
         // Use orig data from embedded collections

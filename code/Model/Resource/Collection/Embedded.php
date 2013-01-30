@@ -11,6 +11,21 @@ class Cm_Mongo_Model_Resource_Collection_Embedded extends Cm_Mongo_Collection
   /** @var string */
   protected $_path;
 
+  /** @var @var bool */
+  protected $_isReplaced = FALSE;
+
+  /**
+   * @param bool|null $flag
+   * @return bool
+   */
+  public function isReplaced($flag = NULL)
+  {
+    if ($flag !== NULL) {
+      $this->_isReplaced = $flag;
+    }
+    return $this->_isReplaced;
+  }
+
   /**
    * Store the root object and path so that items added can have proper root and path
    *
