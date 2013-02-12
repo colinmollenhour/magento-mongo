@@ -656,7 +656,14 @@ abstract class Cm_Mongo_Model_Resource_Abstract extends Mage_Core_Model_Resource
       // Updating hashes should compute difference (does not unset missing keys!)
       else if($forUpdate && $type == 'hash' && $object->getOrigData($field))
       {
-        $value = array_diff_assoc($converter->$type($mapping, $rawValue), $object->getOrigData($field));
+        $value = array();
+        $data = $converter->$type($mapping, $rawValue);
+        $origData = $object->getOrigData($field);
+        foreach ($data as $k => $v) {
+          if (!isset($origData[$k]) || $v !== $origData[$k]) {
+            $value[$k] = $v;
+          }
+        }
       }
 
       // All other data types
