@@ -26,19 +26,10 @@ class Cm_Mongo_Model_Mongo_Indexer extends Cm_Mongo_Model_Resource_Abstract
     foreach (Mage::getModel('mongo/indexer')->getAllIndexers() as $indexer) {
       $this->removeIndex($indexer);
       $collection = $this->getCollection($indexer);
-      $size = $collection->getSize();
-      $page = 1;
-      do {
-        $collection->getQuery()
-          ->skip(($page - 1)*self::COLLECTION_STEP)
-          ->limit(self::COLLECTION_STEP)
-          ->sort(array('_id' => Mongo_Collection::ASC));
-        foreach ($collection as $model /** @var $model Cm_Mongo_Model_Abstract */) {
-          $this->updateIndex($indexer, $model);
-        }
-        $collection->reset();
-        $page++;
-      } while ($page <= intval(ceil($size/self::COLLECTION_STEP)));
+      while ($model = $collection->getNextItem()) { /** @var $model Cm_Mongo_Model_Abstract */
+        $this->updateIndex($indexer, $model);
+        $model->clearInstance();
+      }
     }
   }
 
