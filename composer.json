@@ -1,0 +1,15 @@
+{
+    "name": "colinmollenhour/magento-mongo",
+    "type": "magento-module",
+    "license":"BSD-3-Clause",
+    "description":"MongoDb abstraction layer and atomic job queue for Magento.",
+    "authors":[
+        {
+            "name":"Colin Mollenhour",
+            "email":"colin@mollenhour.com"
+        }
+    ],
+    "require": {
+        "magento-hackathon/magento-composer-installer": "*"
+    }
+}
