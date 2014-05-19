@@ -3,14 +3,15 @@ Cm_Mongo
 
 This Magento extension is primarily two things:
 
-# An abstraction layer for MongoDb. Like the MySQL abstraction layer included in Magento, it provides
-classes that extend Mage_Core_Model_Abstract and Varien_Data_Collection. It also includes support for
+* **An abstraction layer for MongoDb.** Like the MySQL abstraction layer included in Magento, it provides
+classes that extend `Mage_Core_Model_Abstract` and `Varien_Data_Collection`. It also includes support for
 .js upgrade scripts, an indexer to automatically index fields in other collections, and a schema
 defined by XML files.
-# An atomic job queue. The job queue can be run by the Magento cron or by a separate script and supports
+
+* **An atomic job queue.** The job queue can be run by the Magento cron or by a separate script and supports
 future execution dates, automatic retry intervals, disabling jobs by name or group name, and priorities.
 
-See @code/etc/mongo.xml.sample@ and @code/Model/Job.php@ for more information.
+See [mongo.xml.sample](code/etc/mongo.xml.sample) and [Job.php](code/Model/Job.php) for more information.
 
 Unit Testing
 ------------
