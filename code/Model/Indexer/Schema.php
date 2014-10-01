@@ -42,8 +42,10 @@ class Cm_Mongo_Model_Indexer_Schema extends Varien_Simplexml_Config
   public function getEntityIndexers($entity)
   {
     $indexers = array();
-    foreach ($this->getNode('indexer')->{$entity} as $node) {
-      $indexers = array_merge($indexers, $this->_getEntityTypeNodeIndexers($node));
+    if ($this->getNode('indexer')) {
+      foreach ($this->getNode('indexer')->{$entity} as $node) {
+        $indexers = array_merge($indexers, $this->_getEntityTypeNodeIndexers($node));
+      }
     }
     return $indexers;
   }
