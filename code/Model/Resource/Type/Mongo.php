@@ -13,8 +13,8 @@ class Cm_Mongo_Model_Resource_Type_Mongo extends Mage_Core_Model_Resource_Type_A
   public function getConnection($config)
   {
     $conn = ($config instanceof Mage_Core_Model_Config_Element)
-      ? Mongo_Database::instance((string)$config->config, $config->asCanonicalArray())
-      : Mongo_Database::instance($config['config'], $config);
+      ? Cm_Mongo_Model_Resource_Type_Shim::instance((string)$config->config, $config->asCanonicalArray())
+      : Cm_Mongo_Model_Resource_Type_Shim::instance($config['config'], $config);
 
     // Set profiler
     $conn->set_profiler(array($this, 'start_profiler'), array($this, 'stop_profiler'));
