@@ -1216,4 +1216,18 @@ class Cm_Mongo_Model_Resource_Type_Shim extends Mongo_Database implements Varien
     {
         // TODO: Implement getTransactionLevel() method.
     }
+
+    // Magento EE 1.13 methods
+    public function createTemporaryTable(Varien_Db_Ddl_Table $table){}
+    public function dropTemporaryTable($tableName, $schemaName = null){}
+    public function renameTablesBatch(array $tablePairs){}
+    public function insertIgnore($table, array $bind){}
+    public function getCaseSql($valueName, $casesResults, $defaultValue = null){}
+    public function getConfig(){}
+    public function selectsByRange($rangeField, Varien_Db_Select $select, $stepCount = 100){}
+    public function dropTrigger($triggerName){}
+    public function getUnixTimestamp($date){}
+    public function fromUnixtime($timestamp){}
+    public function changeTableAutoIncrement($tableName, $increment, $schemaName = null){}
+    public function createTableFromSelect($tableName, Zend_Db_Select $select, $temporary = false){}
 }
