@@ -1,6 +1,8 @@
 Cm_Mongo
 ========
 
+**NOTE: This is not a drop-in replacement for MySQL. It is intended only for use in implementing new models on MongoDb.**
+
 This Magento extension is primarily two things:
 
 * **An abstraction layer for MongoDb.** Like the MySQL abstraction layer included in Magento, it provides
