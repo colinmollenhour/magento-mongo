@@ -1,7 +1,16 @@
 Cm_Mongo
 ========
 
-**NOTE: This is not a drop-in replacement for MySQL. It is intended only for use in implementing new models on MongoDb.**
+NOTE: This is NOT a drop-in replacement for MySQL. It is intended only for use in implementing new models on MongoDb.
+-----------
+
+NOTE: PHP 7 Support
+-------------
+
+PHP 7 is not supported by the legacy 'mongo' extension and I currently have no plans to update this to use the new 'mongodb' extension which is not API compatible. I will happily accept a pull rquest though! :)
+
+Description
+-----------
 
 This Magento extension is primarily two things:
 
